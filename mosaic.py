@@ -24,8 +24,12 @@ def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None):
         res (float): Resolution of output raster.
         nodata (float): Nodata value of output raster.
 
+    Usage:
+        >>> src_files_to_mosaic = [rasterio.open(f) for f in rfiles]
+        >>> merge_rio(src_files_to_mosaic, output, res=10)
+
     """
-    mosaic, out_trans = merge(src_files_to_mosaic, res=res, nodata=nodata)
+    mosaic, out_trans = merge(src_datasets_to_mosaic, res=res, nodata=nodata)
 
     try:
         src = src_datasets_to_mosaic[0]
@@ -119,13 +123,13 @@ def merge_one_by_one(datasets, out, compress='lzw'):
 
 if __name__ == '__main__':
 
-    rasterDir = r'H:\temp'
-    output = r'F:\SENTINEL\处理\t0617\s0617_mosaic_gml.tif'
-
-    rfiles = glob.glob(os.path.join(rasterDir, '*20181130_50*.tif'))
-
-    src_files_to_mosaic = [rasterio.open(f) for f in rfiles]
-    merge_one_by_one(src_files_to_mosaic, 'H:/temp/S2_20181130_T50.tif', 'lzw')
+#    rasterDir = r'H:\temp'
+#    output = r'F:\SENTINEL\处理\t0617\s0617_mosaic_gml.tif'
+#
+#    rfiles = glob.glob(os.path.join(rasterDir, '*20181130_50*.tif'))
+#
+#    src_files_to_mosaic = [rasterio.open(f) for f in rfiles]
+#    merge_one_by_one(src_files_to_mosaic, 'H:/temp/S2_20181130_T50.tif', 'lzw')
     # merge_rio(src_files_to_mosaic,output,res=10)
     # del src_files_to_mosaic
 

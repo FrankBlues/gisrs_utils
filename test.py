@@ -21,6 +21,30 @@ def get_raster_arr(r):
 
 
 if __name__ == '__main__':
+    
+    r = r'E:\work\海冰\code\result\tif\SeaIce_NP_20171008_20171015_20200115151817.tif'
+    e = r'D:\temp\New_Shapefile.shp'
+    from mask import extract_by_mask
+    from mosaic import merge_rio
+    from rasterio.io import MemoryFile
+#    with open('tests/data/RGB.byte.tif', 'rb') as f, MemoryFile(f) as memfile:
+#    with memfile.open() as src:
+#        pprint.pprint(src.profile)
+
+    extract_by_mask(e, r, 'd:/temp/test1.tif', nodata=0)
+    with rasterio.open('d:/temp/test1.tif') as src:
+        kargs = src.meta.copy()
+        arr = src.read(1)
+        arr[arr==2] = 1
+        with rasterio.open('d:/temp/test2.tif', 'w', **kargs) as dst:
+            dst.write(arr, 1)
+    import datetime
+    nowtime = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    merge_rio([rasterio.open(f) for f in ['d:/temp/test2.tif', r]],
+               r'E:\work\海冰\code\result\tif\SeaIce_NP_20171008_20171015_{}.tif'.format(nowtime),
+               res=None, nodata=0)
+
+
     # outDir = 'D:/test/SENTINEL/s/'
 
     # r = r'D:\temp\Extract_tif12.tif'
@@ -44,17 +68,17 @@ if __name__ == '__main__':
     # ir = os.path.join(d10m,'T49QHF_20181106T025911_B08_10m.jp2')
 
     # r = r'H:\temp\S2_20181029_T50.tif'
-    csv = 'D:/wrs2_centroid_china.csv'
-    from io_utils import read_csv, write_json
-    c = read_csv(csv,delimiter=',')[1:]
-    dic = {}
-    for pr in c:
-        dic[pr[0]] = {"centroid_lat": float(pr[2]),"centroid_lon": float(pr[1])
-                }
-    write_json('d:/wrs2_centroid_china.json', dic)
-    
-
-    r = r'D:\temp\GF5_DPC_20190202_003929_L10000011720_L2A.h5'
+#    csv = 'D:/wrs2_centroid_china.csv'
+#    from io_utils import read_csv, write_json
+#    c = read_csv(csv,delimiter=',')[1:]
+#    dic = {}
+#    for pr in c:
+#        dic[pr[0]] = {"centroid_lat": float(pr[2]),"centroid_lon": float(pr[1])
+#                }
+#    write_json('d:/wrs2_centroid_china.json', dic)
+#    
+#
+#    r = r'D:\temp\GF5_DPC_20190202_003929_L10000011720_L2A.h5'
     # import h5py
 
     # f = h5py.File(r, 'r')

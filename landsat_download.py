@@ -52,6 +52,7 @@ class Downloader_Landsat8(object):
 
         self.aws_l8_url = 'https://landsat-pds.s3.amazonaws.com/c1/L8/'
         self._dataset = 'LANDSAT_8_C1'
+        # self._dataset = 'LANDSAT_ETM_C1'
         self._node = 'EE'
 
         # centroid coordinate of each tile
@@ -268,9 +269,9 @@ def main_lc8():
 if __name__ == '__main__':
     # main_lc8()
     from time_utils import get_dates_in_range
-    times = get_dates_in_range('2019-03-01', '2019-03-30')
+    times = get_dates_in_range('2012-01-01', '2012-12-31')
     downer_l8 = Downloader_Landsat8(132, 43, times)
 
-    # search_result = downer_l8.query()
+    search_result = downer_l8.query()
     # res = downer_l8.get_download_url()
-    downer_l8.download()
+    # downer_l8.download()

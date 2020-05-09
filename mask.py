@@ -208,8 +208,12 @@ if __name__ == '__main__':
     shp = r'D:\test\SENTINEL\广东范围_84.shp'
     outTiff = "G:/temp/temp.tif"
 
-    extract_by_mask_window(image, shp, outTiff, 20000)
+    # extract_by_mask_window(image, shp, outTiff, 20000)
 
     mosaic_dir = r'I:\MODIS\mosaic'
     out_dir = r'I:\MODIS\mask'
-    mosaic_list = glob.glob(os.path.join(mosaic_dir, '*.tif'))
+    # mosaic_list = glob.glob(os.path.join(mosaic_dir, '*.tif'))
+
+    r = r'E:\work\海冰\code\result\tif\SeaIce_NP_20160601_20160608_20191218172225.tif'
+    shp = r'E:\work\海冰\seas_shp\楚科奇海.shp'
+    extract_by_mask(shp, r, 'd:/temp/ttttt.tif')

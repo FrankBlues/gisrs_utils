@@ -130,11 +130,10 @@ def listToShp(outShpFile, geometry_list, epsg=4326, encoding='gbk',
     newdata = gpd.GeoDataFrame()
     # 初始化投影和几何信息
     newdata['geometry'] = None
-    newdata.crs = from_epsg(epsg)
+    newdata.crs = None if epsg is None else from_epsg(epsg)
 
     # 添加数据
     for key in kwargs:
-
         # 保证输入是列表 并且长度一致
         if not isinstance(kwargs[key], (list, tuple)):
             raise ValueError('Value of kwargs must be a list or tuple.')
@@ -147,7 +146,7 @@ def listToShp(outShpFile, geometry_list, epsg=4326, encoding='gbk',
 
     newdata['geometry'] = geometry_list
     # 写出成shp文件
-    newdata.to_file(outShpFile, encoding='gbk', schema=schema)
+    newdata.to_file(outShpFile, encoding=encoding, schema=schema)
 
 
 if __name__ == '__main__':

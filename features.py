@@ -151,9 +151,31 @@ def listToShp(outShpFile, geometry_list, epsg=4326, encoding='gbk',
 
 if __name__ == '__main__':
 
+    from rtree import index
+    idx = index.Index()
+
+
     # 读取省界数据，得到几何信息（投影需一致，经纬度）
-    gdsheng = r'D:\temp\sheng_gd.shp'
-    a = (get_features_from_shp(gdsheng))
+    gdsheng = r'D:\test\test_fishnet1.shp'
+    in_r = r'D:\work\data\影像样例\610124.tif'
+    import rasterio
+    ds = rasterio.open(in_r)
+    # a = (get_features_from_shp(gdsheng))
+
+    data = gpd.read_file(gdsheng)
+    for i, g in enumerate(data.geometry):
+        idx.insert(i, g.bounds)
+
+    # 根据栅格数据四至范围找到相交的分幅
+    ids = list(idx.intersection(tuple(ds.bounds)))
+    from mask import extract_by_mask_rio_ds
+    for i in ids:
+        print(i)
+        extract_by_mask_rio_ds([data.geometry[i]], ds,
+                               'd:/temp/' + data.loc[i, 'name'] + '.tif',
+                               nodata=0)
+
+
     # xml_dir = r'F:\HJ\hjxml_0823'
     # outshp = 'd:/bbbbb.shp'
     # checkHJ(gdsheng,xml_dir,outshp)

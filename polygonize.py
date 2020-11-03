@@ -124,9 +124,20 @@ def mask_to_shp(src, out_shp, mask_value=0, driver='ESRI Shapefile'):
 
 if __name__ == '__main__':
 
-    in_r = 'H:/未标题-1.tif'
+    in_r = r'D:\work\data\影像样例\610124.tif'
     out_shp = "d:/testt3.shp"
     driver = 'ESRI Shapefile'
-
+    
+    nodata_value = 0
     with rasterio.open(in_r) as src:
-        mask_to_shp(src, out_shp)
+        kargs = src.meta.copy()
+        bands = src.count
+        msk = np.ones_like(src.read(1), dtype=bool)
+        if src.nodata is None:
+            print("No data is None!")
+            for b in range(bands):
+                msk = msk & (src.read(b + 1) == nodata_value)
+        
+            
+            
+        # mask_to_shp(src, out_shp)

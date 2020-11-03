@@ -9,6 +9,7 @@ Extract Raster data By Mask using python rasterio module.
 
 import os
 import glob
+import numpy as np
 import rasterio
 import rasterio.mask
 from rasterio.windows import Window
@@ -16,14 +17,15 @@ from rasterio.windows import Window
 from features import get_features_from_shp as get_features
 
 
-def extract_by_mask_rio_ds(maskshp, raster_dataset, out, nodata=0):
+def extract_by_mask_rio_ds(features, raster_dataset, out, nodata=0):
     """Extract raster by vector mask.
 
     Note:
         Mask and raster dataset should have the same projection.
 
     Args:
-        maskshp (esri shapefile): Input shapefile used as mask.
+        features: a GeoJSON-like dict or an object that implements the Python
+            geo interface protocol (such as a Shapely Polygon).
         raster_dataset (rasterio dataset): The raster dataset.
         out (str): Masked output raster file with geotiff format.
         nodata (float): Nodata value of output raster, default 0.
@@ -36,7 +38,6 @@ def extract_by_mask_rio_ds(maskshp, raster_dataset, out, nodata=0):
         ValueError: If input shapes do not overlap raster.
 
     """
-    features = get_features(maskshp)
     out_meta = raster_dataset.meta.copy()
 
     try:
@@ -53,9 +54,10 @@ def extract_by_mask_rio_ds(maskshp, raster_dataset, out, nodata=0):
                          "transform": out_transform})
     except ValueError:  # ValueError: Input shapes do not overlap raster.
         return  # do nothing
-
-    with rasterio.open(out, "w", **out_meta) as dest:
-        dest.write(out_image)
+    # 全部为空值则不进行输出
+    if not np.all(out_image == nodata):
+        with rasterio.open(out, "w", **out_meta) as dest:
+            dest.write(out_image)
     return out
 
 
@@ -65,7 +67,7 @@ def extract_by_mask(maskshp, raster, out, nodata=0):
 
     """
     with rasterio.open(raster) as src:
-        extract_by_mask_rio_ds(maskshp, src, out, nodata=nodata)
+        extract_by_mask_rio_ds(get_features(maskshp), src, out, nodata=nodata)
 
 
 def window_list(window_size, width, height):
@@ -214,6 +216,8 @@ if __name__ == '__main__':
     out_dir = r'I:\MODIS\mask'
     # mosaic_list = glob.glob(os.path.join(mosaic_dir, '*.tif'))
 
-    r = r'E:\work\海冰\code\result\tif\SeaIce_NP_20160601_20160608_20191218172225.tif'
-    shp = r'E:\work\海冰\seas_shp\楚科奇海.shp'
-    extract_by_mask(shp, r, 'd:/temp/ttttt.tif')
+    r = r'D:\work\data\影像样例\610124.tif'
+    shp = r'D:\test\test_fishnet.shp'
+    ds = rasterio.open(r)
+    nodata = 0
+    # extract_by_mask(shp, r, 'd:/temp/ttttt.tif')

@@ -164,6 +164,10 @@ class Downloader_Landsat8(object):
                 print("  Cloud cover: {}, too many!".format(cloud_cover))
             elif url is not None:
                 yield url
+    
+    def download_api(self):
+        """"""
+        api.download(self._dataset, self._node, )
 
     def download(self,
                  band_list=['B1', 'B2', 'B3', 'B4', 'B5',
@@ -269,9 +273,9 @@ def main_lc8():
 if __name__ == '__main__':
     # main_lc8()
     from time_utils import get_dates_in_range
-    times = get_dates_in_range('2012-01-01', '2012-12-31')
+    times = get_dates_in_range('2020-01-01', '2020-12-31')
     downer_l8 = Downloader_Landsat8(132, 43, times)
 
-    search_result = downer_l8.query()
-    # res = downer_l8.get_download_url()
+    # search_result = downer_l8.query()
+    res = downer_l8.get_download_url()
     # downer_l8.download()

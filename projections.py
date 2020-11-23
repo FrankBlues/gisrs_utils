@@ -133,7 +133,7 @@ def reproject_dataset(data, pixel_spacing=0.00035862, epsg_to=4326,
 
 def reproject_rio(infile, outfile, dst_crs='EPSG:4326',
                   resample_method=Resampling.nearest,
-                  resolution=None):
+                  resolution=None, src_crs=None):
     """ Reproject data using rasterio , See
     https://rasterio.readthedocs.io/en/latest/topics/reproject.html
 
@@ -160,13 +160,23 @@ def reproject_rio(infile, outfile, dst_crs='EPSG:4326',
 
     """
     with rasterio.open(infile) as src:
+        crs = src.crs
+        if crs is None:  # 原始数据中没有投影
+            print("Origin image has not built-in projection.")
+            if src_crs:  # 采用指定的投影参考
+                crs = src_crs
+            else:
+                raise ValueError("Source image hasn't a projection define,"
+                                 "Please check it or designate one.")
+                return
+
         if resolution is not None:
             trans, width, height = calculate_default_transform(
-                    src.crs, dst_crs, src.width,
+                    crs, dst_crs, src.width,
                     src.height, resolution=resolution, *src.bounds)
         else:
             trans, width, height = calculate_default_transform(
-                src.crs, dst_crs, src.width, src.height, *src.bounds)
+                crs, dst_crs, src.width, src.height, *src.bounds)
         kwargs = src.meta.copy()
         kwargs.update({
             'driver': 'GTIFF',
@@ -182,7 +192,7 @@ def reproject_rio(infile, outfile, dst_crs='EPSG:4326',
                     source=rasterio.band(src, i),
                     destination=rasterio.band(dst, i),
                     src_transform=src.transform,
-                    src_crs=src.crs,
+                    src_crs=crs,
                     dst_transform=trans,
                     dst_crs=dst_crs,
                     resampling=resample_method)

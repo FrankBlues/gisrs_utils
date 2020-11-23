@@ -15,7 +15,8 @@ import os
 import math
 
 
-def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None):
+def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
+              crs=None):
     """Merge raster datasets to one raster using rasterio.
 
     Args:
@@ -39,7 +40,7 @@ def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None):
                 "height": mosaic.shape[1],
                 "width": mosaic.shape[2],
                 "transform": out_trans,
-                "crs": src.crs,
+                "crs": src.crs if (crs is None) else crs,
                 "nodata": nodata
                 })
 
@@ -122,6 +123,10 @@ def merge_one_by_one(datasets, out, compress='lzw'):
 
 
 if __name__ == '__main__':
+    
+    tiles_dir = r'D:\test\google_tiles\16'
+    tiles = glob.glob(os.path.join(tiles_dir, '*/*.png'))
+    merge_rio([rasterio.open(f) for f in tiles], r'D:\test\google_tiles\z16.tif')
 
 #    rasterDir = r'H:\temp'
 #    output = r'F:\SENTINEL\处理\t0617\s0617_mosaic_gml.tif'

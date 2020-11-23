@@ -40,7 +40,7 @@ def valid_out_file(out):
     out_dir = os.path.dirname(out)
     if out_dir:
         if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
+            os.makedirs(out_dir)
 
 
 def download_one_by_requests_basic(url, out, verify=True):
@@ -58,6 +58,8 @@ def download_one_by_requests_basic(url, out, verify=True):
         valid_out_file(out)
         with open(out, 'wb') as fd:
             fd.write(r.content)
+    else:
+        print(url)
 
 
 def download_one_by_requests_basic_simple_auth(url, out, user, passw):

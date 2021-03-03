@@ -2,7 +2,7 @@
 """Download sentinel2 data or previews from different source.
 
 Note:
-    在linux下用scihub下载;在windows下用code-de生成下载列表用下载工具下载.
+    在linux下用scihub下载;在windows下用code-de(已经不能用)生成下载列表用下载工具下载.
 
 Todos:
     * 将一些用户名密码,基础网址等固定参数写入配置文件

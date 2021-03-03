@@ -10,11 +10,13 @@ import random
 import math
 import concurrent.futures as future
 
-from pyproj import Transformer
+# from pyproj import Transformer
 
 from download_utils import download_one_by_requests_basic
 from io_utils import write_text
 
+
+WEB_MERCATOR_R = 20037508.3427892
 
 def lonlat2xy(lon_deg, lat_deg, zoom):
     """由经纬度计算当前缩放级别下对应瓦片的x,y坐标,方法来自:
@@ -35,9 +37,16 @@ def xy2lonlat(xtile, ytile, zoom):
     return (lon_deg, lat_deg)
 
 
+def lonlat2epsg3857(lon, lat):
+    x =  lon*WEB_MERCATOR_R/180
+    y =math.log(math.tan((90+lat)*math.pi/360))/(math.pi/180)
+    y = y * WEB_MERCATOR_R/180
+    return x,y
+
+
 def get_res_mercator(zoom):
     """计算WebMercator当前缩放级别下的图像分辨率"""
-    return 20037508.3427892 * 2 / 256 / 2**zoom
+    return WEB_MERCATOR_R * 2 / 256 / 2**zoom
 
 
 class Google_Tiles_Downloader(object):
@@ -89,8 +98,9 @@ class Google_Tiles_Downloader(object):
         # 左上角经纬度
         ul_lon, ul_lat = xy2lonlat(x, y, self.zoom)
         # 转换为WebMercator坐标
-        transformer = Transformer.from_crs(4326, 3857, always_xy=True)
-        ul_x, ul_y = transformer.transform(ul_lon, ul_lat)
+        # transformer = Transformer.from_crs(4326, 3857, always_xy=True)
+        # ul_x, ul_y = transformer.transform(ul_lon, ul_lat)
+        ul_x, ul_y = lonlat2epsg3857(ul_lon, ul_lat)
         # 计算当前缩放级别下分辨率
         res = get_res_mercator(self.zoom)
         return ("{0:16.7f}\n{1:16.7f}\n{2:16.7f}\n{3:16.7f}\n{4:16.7f}"
@@ -139,28 +149,27 @@ if __name__ == '__main__':
 
     tile_dir = r'D:\test\google_tiles'
 
+
     # import time
     # st = time.time()
     # 下载
     # gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
     #                               out_dir=tile_dir, is_cn=cn)
     # gtd.download_tiles_parallel(5)
-
-    # 拼接, 定义投影
-    mosaic_file = r'D:\test\google_tiles\m_z16.tif'
-
-    import rasterio
-    from mosaic import merge_rio
-    tile_files = glob.glob(os.path.join(tile_dir, str(z), '*/*.png'))
-
-    merge_rio([rasterio.open(f) for f in tile_files], mosaic_file,
-              crs='EPSG:3857')
-
-    # 投影转换
-    project_file = r'D:\test\google_tiles\p_z16.tif'
-    from projections import reproject_rio
-    reproject_rio(mosaic_file, project_file, dst_crs='EPSG:4326')
-
-
     # gtd.download_tiles()
+    # 拼接, 定义投影
+    # mosaic_file = r'D:\test\google_tiles\m_z16.tif'
+
+    # import rasterio
+    # from mosaic import merge_rio
+    # tile_files = glob.glob(os.path.join(tile_dir, str(z), '*/*.png'))
+
+    # merge_rio([rasterio.open(f) for f in tile_files], mosaic_file,
+    #           crs='EPSG:3857')
+
+    # # 投影转换
+    # project_file = r'D:\test\google_tiles\p_z16.tif'
+    # from projections import reproject_rio
+    # reproject_rio(mosaic_file, project_file, dst_crs='EPSG:4326')
+
     # print(time.time() - st)

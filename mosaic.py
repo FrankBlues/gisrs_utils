@@ -16,7 +16,7 @@ import math
 
 
 def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
-              crs=None):
+              crs=None, compress='lzw'):
     """Merge raster datasets to one raster using rasterio.
 
     Args:
@@ -41,7 +41,8 @@ def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
                 "width": mosaic.shape[2],
                 "transform": out_trans,
                 "crs": src.crs if (crs is None) else crs,
-                "nodata": nodata
+                "nodata": nodata,
+                "compress": compress
                 })
 
         with rasterio.open(output, 'w', **out_meta) as dst:
@@ -52,7 +53,7 @@ def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
         del src_datasets_to_mosaic
 
 
-def merge_one_by_one(datasets, out, compress='lzw'):
+def merge_one_by_one(datasets, out, nodata=None, compress='lzw'):
     """ Merge raster datasets to one raster,unlike the obove one, this function
     write dataset one by one to the designate file to reduce memory use.
 
@@ -64,7 +65,10 @@ def merge_one_by_one(datasets, out, compress='lzw'):
     """
     first = datasets[0]
     first_res = first.res
-    nodataval = first.nodatavals[0]
+    if nodata is None:
+        nodataval = first.nodatavals[0]
+    else:
+        nodataval = nodata
     dtype = first.dtypes[0]
 
     # Determine output band count
@@ -123,19 +127,74 @@ def merge_one_by_one(datasets, out, compress='lzw'):
 
 
 if __name__ == '__main__':
-    
-    tiles_dir = r'D:\test\google_tiles\16'
-    tiles = glob.glob(os.path.join(tiles_dir, '*/*.png'))
-    merge_rio([rasterio.open(f) for f in tiles], r'D:\test\google_tiles\z16.tif')
 
-#    rasterDir = r'H:\temp'
-#    output = r'F:\SENTINEL\处理\t0617\s0617_mosaic_gml.tif'
-#
-#    rfiles = glob.glob(os.path.join(rasterDir, '*20181130_50*.tif'))
-#
-#    src_files_to_mosaic = [rasterio.open(f) for f in rfiles]
-#    merge_one_by_one(src_files_to_mosaic, 'H:/temp/S2_20181130_T50.tif', 'lzw')
-    # merge_rio(src_files_to_mosaic,output,res=10)
+    tiles_dir = r'D:\g_tiles\16'
+    tiles = glob.glob(os.path.join(tiles_dir, '522*.tif'))
+    merge_one_by_one([rasterio.open(f) for f in tiles], os.path.join(tiles_dir, 'part', '522.tif'))
+    
+    # for x in os.listdir(tiles_dir):
+    #     print(x)
+    
+    #     tiles = glob.glob(os.path.join(tiles_dir, x, '*.png'))
+    #     merge_rio([rasterio.open(f) for f in tiles], os.path.join(tiles_dir, x + '.tif'))
+
+
+
+
+# =============================================================================
+#     rasterDir = r'D:\work\data\土地利用30'
+#     output = r'D:\work\data\land_use_global_30.tif'
+#     output_dir = r'D:\work\data'
+# 
+#     rfiles = glob.glob(os.path.join(rasterDir, '*.tif'))
+#     rfiles = rfiles[-16:]
+#     import re
+#     # 找到EW和NS间的数字,即经度.
+#     pattern = re.compile(r'(?<=[EW])\d+\.?\d*(?=[NS])')
+# 
+#     batch = []
+#     flag = -1
+#     name_suffix = ''
+# 
+#     for r in rfiles:
+#         lons = re.findall(pattern, r)
+#         if len(lons) != 1:
+#             print(r)
+#             print("find more than 1.")
+#         lon = lons[0]
+#         if flag != int(lon):
+#             if len(batch) > 0:
+#                 print("正在镶嵌当前经度数据：{0},共找到{1}个文件.".format(name_suffix, len(batch)))
+#                 src_files_to_mosaic = [rasterio.open(f) for f in batch]
+#                 merge_rio(src_files_to_mosaic, os.path.join(output_dir, 'land_use_30m_' + name_suffix + '.tif'), nodata=0)
+#                 # break
+# 
+#             flag = int(lon)
+#             batch = []
+#             batch.append(r)
+#             # print('E' + str(lon))
+#             if 'E' + str(lon) in r:
+#                 name_suffix = 'E' + str(lon)
+#             elif 'W' + str(lon) in r:
+#                 name_suffix = 'W' + str(lon)
+#             # print(name_suffix)
+#             
+# 
+#         else:
+#             batch.append(r)
+#     src_files_to_mosaic = [rasterio.open(f) for f in batch]
+#     merge_rio(src_files_to_mosaic, os.path.join(output_dir, 'land_use_30m_' + name_suffix + '.tif'), nodata=0)
+# 
+# 
+# =============================================================================
+
+
+
+
+
+    # src_files_to_mosaic = [rasterio.open(f) for f in rfiles]
+    # merge_one_by_one(src_files_to_mosaic, output, nodata=0, compress='lzw')
+    # merge_rio(src_files_to_mosaic,output,nodata=0)
     # del src_files_to_mosaic
 
 # =============================================================================

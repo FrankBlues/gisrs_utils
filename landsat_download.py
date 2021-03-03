@@ -164,10 +164,6 @@ class Downloader_Landsat8(object):
                 print("  Cloud cover: {}, too many!".format(cloud_cover))
             elif url is not None:
                 yield url
-    
-    def download_api(self):
-        """"""
-        api.download(self._dataset, self._node, )
 
     def download(self,
                  band_list=['B1', 'B2', 'B3', 'B4', 'B5',
@@ -196,13 +192,14 @@ class Downloader_Landsat8(object):
                     url_b = url_base + product + '_' + b + '.TIF'
                     # download via wget.
                     # print(url_b)
-                    # cmd = "wget {}".format(url_b)
-                    # os.system(cmd)
+                    cmd = "wget {}".format(url_b)
+                    os.system(cmd)
                 for m in meta:
                     url_m = url_base + product + '_' + m
-                    # cmd = "wget {}".format(url_m)
-                    # os.system(cmd)
                     # print(url_m)
+                    cmd = "wget {}".format(url_m)
+                    os.system(cmd)
+                    
         print("{} downloaded.".format(download_num))
 
 
@@ -273,9 +270,9 @@ def main_lc8():
 if __name__ == '__main__':
     # main_lc8()
     from time_utils import get_dates_in_range
-    times = get_dates_in_range('2020-01-01', '2020-12-31')
-    downer_l8 = Downloader_Landsat8(132, 43, times)
+    times = get_dates_in_range('2020-11-01', '2020-12-31')
+    downer_l8 = Downloader_Landsat8(123, 33, times)
 
     # search_result = downer_l8.query()
-    res = downer_l8.get_download_url()
-    # downer_l8.download()
+    # res = list(downer_l8.get_download_url())
+    downer_l8.download()

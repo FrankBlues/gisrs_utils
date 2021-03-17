@@ -148,7 +148,7 @@ if __name__ == '__main__':
     cn = False
 
     tile_dir = r'D:\test\google_tiles'
-
+    print(get_res_mercator(18))
 
     # import time
     # st = time.time()

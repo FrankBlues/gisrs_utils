@@ -1,4 +1,5 @@
-#!C:/Users/DELL/anaconda3/envs/my\python.exe
+# !C:/Users/DELL/anaconda3/envs/my\python.exe
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ******************************************************************************
 #  $Id: gdal2tiles.py 17c3fa6fefeb3b305a27ff6ed1590145815d7ee3 2019-03-14 22:12:27 +0100 Even Rouault $
@@ -1028,8 +1029,12 @@ def create_overview_tiles(tile_job_info, output_folder, options):
 
     for tz in range(tile_job_info.tmaxz - 1, tile_job_info.tminz - 1, -1):
         tminx, tminy, tmaxx, tmaxy = tile_job_info.tminmax[tz]
-        # for ty in range(tmaxy, tminy - 1, -1):
-        for ty in range(tminy, tmaxy + 1):
+
+        if options.profile == 'raster':
+            ty_range = range(tminy, tmaxy + 1)
+        else:
+            ty_range = range(tmaxy, tminy - 1, -1)
+        for ty in ty_range:
             for tx in range(tminx, tmaxx + 1):
 
                 ti += 1
@@ -1076,8 +1081,12 @@ def create_overview_tiles(tile_job_info, output_folder, options):
                             dsquerytile = gdal.Open(
                                 base_tile_path,
                                 gdal.GA_ReadOnly)
+                            if options.profile == 'raster':
+                                ty_condition = ((ty == 0 and y == 0) or (ty != 0 and (y % (2 * ty)) == 0))
+                            else:
+                                ty_condition = ((ty == 0 and y == 1) or (ty != 0 and (y % (2 * ty)) != 0))
                             # if (ty == 0 and y == 1) or (ty != 0 and (y % (2 * ty)) != 0):
-                            if (ty == 0 and y == 0) or (ty != 0 and (y % (2 * ty)) == 0):
+                            if ty_condition:
                                 tileposy = 0
                             else:
                                 tileposy = tile_job_info.tile_size
@@ -1403,14 +1412,22 @@ class GDAL2Tiles(object):
         self.tminz = None
         self.tmaxz = None
         if self.options.zoom:
-            minmax = self.options.zoom.split('-', 1)
-            minmax.extend([''])
-            zoom_min, zoom_max = minmax[:2]
-            self.tminz = int(zoom_min)
-            if zoom_max:
-                self.tmaxz = int(zoom_max)
+            if self.options.zoom == '-1':
+                self.tminz = None
+                self.tmaxz = None
             else:
-                self.tmaxz = int(zoom_min)
+                minmax = self.options.zoom.split('-', 1)
+                minmax.extend([''])
+                zoom_min, zoom_max = minmax[:2]
+                if zoom_min:
+                    self.tminz = int(zoom_min)
+                    if zoom_max:
+                        self.tmaxz = int(zoom_max)
+                    else:
+                        self.tmaxz = int(zoom_min)
+                else:
+                    self.tminz = None
+                    self.tmaxz = None
 
         # KML generation
         self.kml = self.options.kml
@@ -1804,8 +1821,13 @@ class GDAL2Tiles(object):
         tile_details = []
 
         tz = self.tmaxz
-        # for ty in range(tmaxy, tminy - 1, -1):
-        for ty in range(tminy, tmaxy + 1):
+
+        if self.options.profile == 'raster':
+            ty_range = range(tminy, tmaxy + 1)
+        else:
+            ty_range = range(tmaxy, tminy - 1, -1)
+
+        for ty in ty_range:
             for tx in range(tminx, tmaxx + 1):
 
                 ti += 1
@@ -2905,7 +2927,7 @@ def main():
 
 if __name__ == '__main__':
     main()
-    """gdal2tiles1.py -p raster -s -n d:/雁塔区配准.png D:/g_tiles/tiles_yanta"""
+    """gdal2tiles.py -p raster -s -n d:/雁塔区配准.png D:/g_tiles/tiles_yanta"""
     # argv_list = ['gdal2tiles.py', '-s', 'EPSG:4326', '-p', 'raster', '--n', 'd:/雁塔区配准.png', 'D:/g_tiles/tiles4326']
     # argv_list = ['gdal2tiles.py', '-p', 'raster', '-s', '-n', 'd:/雁塔区配准.png', 'D:/g_tiles/tiles']
     # argv = gdal.GeneralCmdLineProcessor(argv_list)

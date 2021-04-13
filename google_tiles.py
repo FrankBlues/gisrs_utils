@@ -69,8 +69,8 @@ class Google_Tiles_Downloader(object):
     x, y, z: 瓦片坐标及缩放级别
 
     Attributes:
-        is_cn: 是否采样国内火星坐标系
-
+        lon1, lat1, lon2, lat2: 左上角及右下角经纬度;
+        is_cn: 是否采样国内火星坐标系.
     """
 
     def __init__(self, lon1, lat1, lon2, lat2, zoom=10, out_dir='gtiles',
@@ -139,22 +139,37 @@ class Google_Tiles_Downloader(object):
                 for y in range(self.y0, self.y1 + 1):
                     executor.submit(self.download_one, x, y)
 
+    def write_urls_to_files(self, url_file):
+        """循环每一个瓦片进行下载."""
+        if os.path.isfile(url_file):
+            os.remove(url_file)
+        with open(url_file, 'a') as f:
+            for x in range(self.x0, self.x1 + 1):
+                for y in range(self.y0, self.y1 + 1):
+                    url = self.construct_url(x, y)
+                    f.write(url + '\n')
+
 
 if __name__ == '__main__':
-    lon1, lat1 = 112.1, 38.25
-    lon2, lat2 = 112.7, 37.7
-    z = 16
+    lon1, lat1 = 115.903876, 39.055696
+    lon2, lat2 = 115.912064, 39.050925
+    z = 18
 
     cn = False
 
-    tile_dir = r'D:\test\google_tiles'
-    print(get_res_mercator(18))
+    tile_dir = r'D:\g_tiles'
+    url_file = 'd:/gtiles.txt'
+    print(f'resolution: {get_res_mercator(z):.2f} m.')
+    # 构建
+    gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
+                                  out_dir=tile_dir, is_cn=cn)
+    # 瓦片地址写到文件
+    gtd.write_urls_to_files(url_file)
+
 
     # import time
     # st = time.time()
     # 下载
-    # gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
-    #                               out_dir=tile_dir, is_cn=cn)
     # gtd.download_tiles_parallel(5)
     # gtd.download_tiles()
     # 拼接, 定义投影
@@ -173,3 +188,16 @@ if __name__ == '__main__':
     # reproject_rio(mosaic_file, project_file, dst_crs='EPSG:4326')
 
     # print(time.time() - st)
+    
+    import re
+    os.chdir(tile_dir)
+    for tile in os.listdir(tile_dir):
+        match_obj = re.search(r'x=(\d+?)&y=(\d+?)&z=(\d+?).jpg', tile)
+        x, y, _ = match_obj.groups()
+        with open(tile.replace('.jpg', '.jgw'), 'w') as wld_f:
+            wld_f.write(gtd.get_world_file(int(x), int(y)))
+        
+    
+    
+    
+    

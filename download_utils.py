@@ -289,3 +289,36 @@ def construct_request_basic_auth(url, user, passw, **kargs):
         headers.update(kargs)
 
     return construct_request(url, headers=headers)
+
+
+if __name__ == '__main__':
+    
+    root_uri = 'https://scihub.copernicus.eu/dhus/odata/v1/'
+    
+    tile = '50SMJ'
+    # 50SLJ 50SMJ
+    # 50SLH 50SMH
+    import requests
+    con = (f"Products?$format=json&"
+           "$filter=year(IngestionDate) eq 2021 and "
+           "month(IngestionDate) eq 4 and "
+           "startswith(Name,'S2') and "
+           "substringof('50SLJ',Name) and "
+           "substringof('L1C',Name)&"
+           "$orderby=IngestionDate desc")
+    r = requests.get(root_uri + con,
+                     auth=('mellem', '302112aa'))
+    if r.status_code == 200:
+        content = r.json()
+        results = content['d']['results']
+        print(f'{len(results)} found!')
+        FLAG = 1
+        for result in results:
+            product_id = result['Id']
+            name = result['Name']
+            product_url = root_uri + f"Products('{product_id}')/$value" + '_' + str(FLAG)
+            preview_url = root_uri + f"Products('{product_id}')/Products('Quicklook')/$value"
+            print(product_url)
+            r1 = requests.get(preview_url, auth=('mellem', '302112aa'))
+            download_one_by_requests_basic_simple_auth(preview_url, f'e:/S2/{name}_{FLAG}.jpg', 'mellem', '302112aa')
+            FLAG += 1

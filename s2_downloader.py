@@ -819,8 +819,8 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
     # 1. 下载缩略图
-    with open(tileFile) as file:
-        t = file.readlines()
+    # with open(tileFile) as file:
+    #     t = file.readlines()
 
     # tiles = [l[:5] for l in t]
     tiles = ['47QLG']

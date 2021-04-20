@@ -303,7 +303,7 @@ if __name__ == '__main__':
            "$filter=year(IngestionDate) eq 2021 and "
            "month(IngestionDate) eq 4 and "
            "startswith(Name,'S2') and "
-           "substringof('50SLJ',Name) and "
+           "substringof('50SLH',Name) and "
            "substringof('L1C',Name)&"
            "$orderby=IngestionDate desc")
     r = requests.get(root_uri + con,

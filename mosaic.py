@@ -16,7 +16,7 @@ import math
 
 
 def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
-              crs=None, compress='lzw'):
+              crs=None, compress='lzw', method='first'):
     """Merge raster datasets to one raster using rasterio.
 
     Args:
@@ -30,7 +30,7 @@ def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
         >>> merge_rio(src_files_to_mosaic, output, res=10)
 
     """
-    mosaic, out_trans = merge(src_datasets_to_mosaic, res=res, nodata=nodata)
+    mosaic, out_trans = merge(src_datasets_to_mosaic, res=res, nodata=nodata, method=method)
 
     try:
         src = src_datasets_to_mosaic[0]
@@ -42,7 +42,8 @@ def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
                 "transform": out_trans,
                 "crs": src.crs if (crs is None) else crs,
                 "nodata": nodata,
-                "compress": compress
+                "compress": compress,
+                "BIGTIFF": 'YES'
                 })
 
         with rasterio.open(output, 'w', **out_meta) as dst:
@@ -112,7 +113,7 @@ def merge_one_by_one(datasets, out, nodata=None, compress='lzw'):
             }
 
     # write out dataset by dataset
-    with rasterio.open(out, 'w', **kargs) as dst:
+    with rasterio.open(out, 'w', BIGTIFF='YES', **kargs) as dst:
         print("Total {} windows.".format(len(datasets)))
         for i, src in enumerate(datasets):
             src_w, src_s, src_e, src_n = src.bounds
@@ -128,10 +129,10 @@ def merge_one_by_one(datasets, out, nodata=None, compress='lzw'):
 
 if __name__ == '__main__':
 
-    tiles_dir = r'D:\g_tiles\16'
-    tiles = glob.glob(os.path.join(tiles_dir, '522*.tif'))
-    merge_one_by_one([rasterio.open(f) for f in tiles], os.path.join(tiles_dir, 'part', '522.tif'))
-    
+    tiles_dir = r'G:\temp'
+    tiles = glob.glob(os.path.join(tiles_dir, '*.tif'))
+    # merge_one_by_one([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_test_bigtiff.tif')
+    merge_rio([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_mosaic.tif')
     # for x in os.listdir(tiles_dir):
     #     print(x)
     

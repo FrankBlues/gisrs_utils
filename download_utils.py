@@ -301,9 +301,9 @@ if __name__ == '__main__':
     import requests
     con = (f"Products?$format=json&"
            "$filter=year(IngestionDate) eq 2021 and "
-           "month(IngestionDate) eq 6 and "
+           "month(IngestionDate) eq 7 and "
            "startswith(Name,'S2') and "
-           "substringof('50SLH',Name) and "
+           "substringof('50SMJ',Name) and "
            "substringof('L1C',Name)&"
            "$orderby=IngestionDate desc")
     print(f"Query url: {root_uri + con}")

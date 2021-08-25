@@ -301,7 +301,7 @@ if __name__ == '__main__':
     import requests
     con = (f"Products?$format=json&"
            "$filter=year(IngestionDate) eq 2021 and "
-           "month(IngestionDate) eq 7 and "
+           "month(IngestionDate) eq 8 and "
            "startswith(Name,'S2') and "
            "substringof('50SMJ',Name) and "
            "substringof('L1C',Name)&"

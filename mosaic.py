@@ -129,10 +129,10 @@ def merge_one_by_one(datasets, out, nodata=None, compress='lzw'):
 
 if __name__ == '__main__':
 
-    tiles_dir = r'G:\temp'
-    tiles = glob.glob(os.path.join(tiles_dir, '*.tif'))
+    tiles_dir = r'D:\work\data\影像样例\445825_246658_pd2020008643\PD2020008643\IMG_PHR1B_MS_002'
+    tiles = glob.glob(os.path.join(tiles_dir, '*.TIF'))
     # merge_one_by_one([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_test_bigtiff.tif')
-    merge_rio([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_mosaic.tif')
+    merge_rio([rasterio.open(f) for f in tiles], 'D:/temp11/pleiades_test/pd_test_mosaic.tif')
     # for x in os.listdir(tiles_dir):
     #     print(x)
     

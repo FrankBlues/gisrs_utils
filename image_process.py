@@ -9,6 +9,8 @@ from io_utils import read_raster_gdal, read_text
 try:
     import gdal
 except ImportError:
+    from osgeo import gdal
+except ImportError:
     print('ignore if not using gdal module')
     pass
 try:
@@ -198,6 +200,12 @@ def linear_stretch(argArry, percent=2, leftPercent=None,
                              interpolation="nearest")
     retArry = None
     return bytscl(argArry, maxValue=maxValue, minValue=minValue, nodata=nodata)
+
+
+def bytscl_std(input_arr, n=3):
+    """标准差拉伸"""
+    mean, std = input_arr.mean(), input_arr.std()
+    return bytscl(input_arr, mean+n*std, mean-n*std)
 
 
 def cira_strech(band_data):
@@ -585,6 +593,17 @@ def resample(srcfile, dstfile, new_res, width=0, height=0,
                 resampling=method)
 
 
+def change_dtype(in_raster, out_raster, dst_dtype='float32'):
+    """不改变其它信息的情况下,改变数据类型."""
+    with rasterio.open(in_raster) as src:
+        kargs = src.meta.copy()
+        kargs.update({'dtype': dst_dtype,})
+
+        with rasterio.open(out_raster, 'w', **kargs) as dst:
+            dst.write(src.read())
+
+
+
 if __name__ == '__main__':
     ref_image = r'F:\SENTINEL\download\down0702\S2_49RFJ_20180627_0\B04.jp2'
     mask = r'D:\testtt33355555333333344433.tif'
@@ -592,3 +611,6 @@ if __name__ == '__main__':
     shp = 'D:/Export_Output.shp'
     # source_ds = ogr.Open(shp)
     # rasterize(shp,mask)
+    src = r'D:\temp11\test_osm\YMSS.tif'
+    dst = r'D:\temp11\test_osm\YMSS1.tif'
+    change_dtype(src, dst)

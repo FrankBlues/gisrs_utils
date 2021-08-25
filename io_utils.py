@@ -25,6 +25,8 @@ except ImportError:
 try:
     import gdal
 except ImportError:
+    from osgeo import gdal
+except ImportError:
     print("gdal module missing,install when needed")
     pass
 

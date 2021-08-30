@@ -122,10 +122,24 @@ def gamma(image, gamma=1.0):
     """
     if gamma <= 0 or np.isnan(gamma):
         raise ValueError("gamma must be greater than 0")
+    if image.dtype != 'uint8':
+        raise ValueError("data type must be uint8")
 
     norm = image/256.
     norm **= 1.0 / gamma
     return (norm * 255).astype('uint8')
+
+
+def aoto_gamma(image, mean_v=0.45, nodata=None):
+    """自动获取gamma值,"""
+    dims = image.shape
+    if len(dims) > 2 or image.dtype != 'uint8':
+        raise ValueError()
+    img = image[::2, ::2].astype('float32')
+    if nodata is not None:
+        img[img == nodata] = np.nan
+    gammav = np.log10(mean_v)/np.log10(np.nanmean(img)/256)
+    return 1/gammav
 
 
 def bytscl(argArry, maxValue=None, minValue=None, nodata=None, top=255):
@@ -168,6 +182,28 @@ def bytscl(argArry, maxValue=None, minValue=None, nodata=None, top=255):
     return retArry.astype('uint8')
 
 
+def percentile_v(argArry, percent=2, leftPercent=None,
+                 rightPercent=None, nodata=None):
+    if percent is not None:
+        leftPercent = percent
+        rightPercent = percent
+    elif (leftPercent is None or rightPercent is None):
+        raise ValueError('Wrong parameter! Both left and right percent '
+                         'should be set.')
+
+    if len(argArry.shape) == 2:
+        _arr = argArry[::2, ::2]
+        retArry = _arr[_arr != nodata]
+    else:
+        retArry = argArry[argArry != nodata]
+
+    minValue = np.percentile(retArry, leftPercent, interpolation="nearest")
+    maxValue = np.percentile(retArry, 100 - rightPercent,
+                             interpolation="nearest")
+    
+    return maxValue, minValue
+
+
 def linear_stretch(argArry, percent=2, leftPercent=None,
                    rightPercent=None, nodata=None):
     """指定百分比对数据进行线性拉伸处理.
@@ -186,19 +222,8 @@ def linear_stretch(argArry, percent=2, leftPercent=None,
         ValueError: If only one of the leftPercent or the rightPercent is set.
 
     """
-    if percent is not None:
-        leftPercent = percent
-        rightPercent = percent
-    elif (leftPercent is None or rightPercent is None):
-        raise ValueError('Wrong parameter! Both left and right percent '
-                         'should be set.')
-
-    retArry = argArry[argArry != nodata]
-
-    minValue = np.percentile(retArry, leftPercent, interpolation="nearest")
-    maxValue = np.percentile(retArry, 100 - rightPercent,
-                             interpolation="nearest")
-    retArry = None
+    maxValue, minValue = percentile_v(argArry, percent, leftPercent,
+                                      rightPercent, nodata)
     return bytscl(argArry, maxValue=maxValue, minValue=minValue, nodata=nodata)
 
 
@@ -603,6 +628,101 @@ def change_dtype(in_raster, out_raster, dst_dtype='float32'):
             dst.write(src.read())
 
 
+def pre_process_thumbs(r_arr, g_arr, b_arr, nodata=None):
+    """输入原始RGB值,返回2%线性拉伸及自动gamma校正后的RGB值."""
+    # 计算线性拉伸最大最小值,采用2%拉伸
+    r_p_max, r_p_min = percentile_v(r_arr, nodata=nodata)
+    g_p_max, g_p_min = percentile_v(g_arr, nodata=nodata)
+    b_p_max, b_p_min = percentile_v(b_arr, nodata=nodata)
+    # 如果2%处数值相等,极有可能是nodata
+    if r_p_max == g_p_max == b_p_max and nodata is None:
+        print("The max value may be the nodata value")
+        nodata = r_p_max
+        r_p_max, r_p_min = percentile_v(r_arr, nodata=nodata)
+        g_p_max, g_p_min = percentile_v(g_arr, nodata=nodata)
+        b_p_max, b_p_min = percentile_v(b_arr, nodata=nodata)
+    elif r_p_min == g_p_min == b_p_min and nodata is None:
+        print("The min value may be the nodata value")
+        nodata = r_p_min
+        r_p_max, r_p_min = percentile_v(r_arr, nodata=nodata)
+        g_p_max, g_p_min = percentile_v(g_arr, nodata=nodata)
+        b_p_max, b_p_min = percentile_v(b_arr, nodata=nodata)
+    # 线性拉伸
+    stretched_r = bytscl(r_arr, r_p_max, r_p_min, nodata)
+    stretched_g = bytscl(g_arr, g_p_max, g_p_min, nodata)
+    stretched_b = bytscl(b_arr, b_p_max, b_p_min, nodata)
+    
+    # 计算gamma校正用到的gamma值
+    gamma_v_r = aoto_gamma(stretched_r, nodata=nodata)
+    gamma_v_g = aoto_gamma(stretched_g, nodata=nodata)
+    gamma_v_b = aoto_gamma(stretched_b, nodata=nodata)
+    g = (gamma_v_r + gamma_v_g + gamma_v_b) / 3
+    print(f"Use gamma value: {g:.3f}")
+    return [gamma(stretched_r, g), gamma(stretched_g, g),
+            gamma(stretched_b, g)]
+
+
+def create_thumbnail_rs(image, out_thumbs='thumbs.png', size=500):
+    """遥感影像缩略图生产, 预处理采用2%线性拉伸及自动gamma校正, 缩略图保持原来长宽比,
+    短边为指定像素大小.
+        * 单波段: 灰度图;
+        * 3波段: 默认采用1、2、3波段作为RGB波段;
+        * 4波段及以上: 默认采用3、2、1波段作为RGB波段;
+    """
+    with rasterio.open(image) as src:
+        meta = src.meta.copy()
+        width, height = meta['width'], meta['height']
+        nodata = meta['nodata']
+        bands = meta['count']
+        # 短边等于size
+        ratio = height / width
+        if width > height:
+            size1 = size
+            size0 = int(size / ratio)
+        else:
+            size0 = size
+            size1 = int(size * ratio)
+        # 如果数据过大时,比如大于10倍size, 读取view的最大尺寸
+        x_view_size, y_view_size = size1 * 10, size0 * 10
+        if bands == 1:
+            if height > x_view_size or width > y_view_size:
+                print("The input data too large, read view of the data array.")
+                data_array = src.read(1, out_shape=(x_view_size, y_view_size))
+            else:
+                data_array = src.read(1)
+            print("Pre-processing the bands data..")
+            stretched = linear_stretch(data_array, 2, nodata=nodata)
+            gamma_trans = gamma(stretched, aoto_gamma(stretched, nodata=nodata))
+            print("Creating thumbnails..")
+            IMG = pilImage(gamma_trans)
+            IMG.saveThumb(out_thumbs, (size0, size1))
+        elif bands == 3:
+            print("Use band_1, band_2, band_3 as the RGB bands respectly.")
+            if height > x_view_size or width > y_view_size:
+                print("The input data too large, read view of the data array.")
+                r = src.read(1, out_shape=(x_view_size, y_view_size))
+                g = src.read(2, out_shape=(x_view_size, y_view_size))
+                b = src.read(3, out_shape=(x_view_size, y_view_size))
+            else:
+                r, g, b = src.read(1), src.read(2), src.read(3)
+            rgb_list = pre_process_thumbs(r, g, b, nodata)
+            IMG = pilImage(rgb_list)
+            IMG.saveThumb(out_thumbs, (size0, size1))
+        elif bands > 3:
+            print("Use band_3, band_2, band_1 as the RGB bands respectly.")
+            if height > x_view_size or width > y_view_size:
+                print("The input data too large, read view of the data array.")
+                r = src.read(3, out_shape=(x_view_size, y_view_size))
+                g = src.read(2, out_shape=(x_view_size, y_view_size))
+                b = src.read(1, out_shape=(x_view_size, y_view_size))
+            else:
+                r, g, b = src.read(1), src.read(2), src.read(3)
+            print("Pre-processing the bands data..")
+            rgb_list = pre_process_thumbs(r, g, b, nodata)
+            print("Creating thumbnails..")
+            IMG = pilImage(rgb_list)
+            IMG.saveThumb(out_thumbs, (size0, size1))
+
 
 if __name__ == '__main__':
     ref_image = r'F:\SENTINEL\download\down0702\S2_49RFJ_20180627_0\B04.jp2'
@@ -613,4 +733,7 @@ if __name__ == '__main__':
     # rasterize(shp,mask)
     src = r'D:\temp11\test_osm\YMSS.tif'
     dst = r'D:\temp11\test_osm\YMSS1.tif'
-    change_dtype(src, dst)
+    # change_dtype(src, dst)
+    img = r'D:\temp11\pleiades_test\pleiades_test_MS.tif'
+    size = 500
+    create_thumbnail_rs(img, "d:/temp11/thumbs_5.png")

@@ -130,7 +130,7 @@ def gamma(image, gamma=1.0):
     return (norm * 255).astype('uint8')
 
 
-def aoto_gamma(image, mean_v=0.45, nodata=None):
+def auto_gamma(image, mean_v=0.45, nodata=None):
     """自动获取gamma值,"""
     dims = image.shape
     if len(dims) > 2 or image.dtype != 'uint8':
@@ -736,4 +736,27 @@ if __name__ == '__main__':
     # change_dtype(src, dst)
     img = r'D:\temp11\pleiades_test\pleiades_test_MS.tif'
     size = 500
-    create_thumbnail_rs(img, "d:/temp11/thumbs_5.png")
+    # create_thumbnail_rs(img, "d:/temp11/thumbs_5.png")
+    import time
+    st = time.time()
+    in_raster = r"D:\temp11\cd_1m.tif"
+    out_raster = r"D:\temp\演示数据\cd_1m.tif"
+    with rasterio.open(in_raster) as src:
+        kargs = src.meta.copy()
+        kargs.update({'nodata': 0,
+                      'count': 3})
+        print(kargs)
+        
+        arr = src.read(1)
+        arr[arr==255] = 0
+        mask = arr == 1
+        # 22 181 255
+        # 
+        with rasterio.open(out_raster, 'w', **kargs) as dst:
+            arr[mask] = 255
+            dst.write(arr, 1)
+            arr[mask] = 1
+            dst.write(arr, 2)
+            arr[mask] = 1
+            dst.write(arr, 3)
+    print(time.time() - st)

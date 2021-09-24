@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import glob
 import math
 
 from skimage.morphology import square
@@ -249,10 +250,36 @@ def rgb2gray(rgb, r_weight=0.2125, g_weight=0.7154, b_weight=0.0721):
     return (rgb[0] * r_weight + rgb[1] * g_weight + rgb[2] * b_weight).astype('uint8')
 
 
+def gcps_merge(gcp_files, out_path='./gcps', ransac_thresh=1.2e-5):
+    """处理分块控制点匹配结果"""
+    contents = ""
+    for f in gcp_files:
+        with open(f) as in_f:
+            contents += in_f.read()
+    gcps = np.fromstring(contents, sep='\t')
+    gcps = gcps.reshape((int(gcps.size/4), 4))
+    # save all the gcps matched.
+    np.savetxt(os.path.join(out_path, 'gcps_all.txt'), gcps,
+                        fmt='%10.6f', delimiter='\t')
+    
+    # again use RANSAC to filter gcps
+    src_pts1 = gcps[:, :2].reshape(-1,1,2)
+    dst_pts1 = gcps[:, 2:].reshape(-1,1,2)
+    
+    M, mask = cv.findHomography(src_pts1, dst_pts1, cv.RANSAC, ransac_thresh)
+    n = mask.sum()
+    mask = np.repeat(mask, 4, 1)
+    gcps = gcps[mask == 1].reshape(n, 4)
+    # 写出再次筛选后的控制点
+    np.savetxt(os.path.join(out_path, 'gcps.txt'), gcps,
+                        fmt='%10.6f', delimiter='\t')
+    return gcps
+
 
 if __name__ == '__main__':
-    pan = r'D:\work\data\影像样例\GF2\GF2_PMS1_E108.9_N34.2_20181026_L1A0003549596\GF2_PMS1_E108.9_N34.2_20181026_L1A0003549596-PAN1.tiff'
+    pan = r'D:\work\data\影像样例\GF2\GF2_PMS2_E109.1_N34.2_20181026_L1A0003549601\GF2_PMS2_E109.1_N34.2_20181026_L1A0003549601-PAN2.tiff'
     ref = r'E:\google\xian_18_google84.img'
+    # ref = r'E:\google\s_16_xian_prj.tif'
 
     # ref_img = cv.imread(ref, cv.IMREAD_GRAYSCALE)
     ds = rasterio.open(ref)
@@ -260,50 +287,22 @@ if __name__ == '__main__':
     # arr_ref, meta = open_img(ref, band_idx=1)
     
     # 预处理
-    rpc_trans_out = r"D:\work\算法\registration\data\rpc_trans_out.tif"
+    rpc_trans_out = r"D:\work\算法\registration\data\rpc_trans_out1.tif"
     # RPC变换
     rpc_trans = f"gdalwarp -rpc {pan} {rpc_trans_out}"
     # os.system(rpc_trans)
     
-    import glob
-    gcp_files = glob.glob("d:/gcp_ori_*.txt")
-    contents = ""
-    for f in gcp_files:
-        with open(f) as in_f:
-            contents += in_f.read()
-    gcps = np.fromstring(contents, sep='\t')
-    gcps = gcps.reshape((int(gcps.size/4), 4))
+    # import glob
+    # gcp_files = glob.glob('d:/test/gcp_ori_*.txt')
+    # gcps = gcps_merge(gcp_files, 'd:/temp11', 2e-5)
     
-    src_pts1 = gcps[:, :2].reshape(-1,1,2)
-    dst_pts1 = gcps[:, 2:].reshape(-1,1,2)
-    
-    M, mask = cv.findHomography(src_pts1, dst_pts1, cv.RANSAC, 1e-5)
-    n = mask.sum()
-    mask = np.repeat(mask, 4, 1)
-    gcps = gcps[mask == 1].reshape(n, 4)
-    
-    np.savetxt(f'd:/gcps.txt', gcps,
-                        fmt='%10.6f', delimiter='\t')
-    
-    
-    
-    RC = Residual_Cal(gcps[:, 0], gcps[:, 1], gcps[:, 2], 2)
-    res_x = RC.get_result()
-    RC = Residual_Cal(gcps[:, 0], gcps[:, 1], gcps[:, 3], 2)
-    res_y = RC.get_result()
-    res = np.sqrt(res_x ** 2 + res_y ** 2)
-    print(f"Mean residual of x: {np.abs(res_x).mean()}")
-    print(f"Mean residual of y: {np.abs(res_y).mean()}")
-    print(f"Mean residual: {res.mean()}")
-    
-    
-    
-    import sys
-    sys.exit(0)
+    # import sys
+    # sys.exit(0)
     
     # 分块处理
-    blocks = 10
-    buffer = 150  # 像素
+    blocks = 15
+    buffer = 250  # 像素
+    gcp_files = []
     # arr, meta = open_img(rpc_trans_out, band_idx=1)
     with rasterio.open(rpc_trans_out) as src:
         width, height = src.width, src.height
@@ -375,38 +374,47 @@ if __name__ == '__main__':
             good = [m1 for (m1, m2) in matches if m1.distance < 0.7*m2.distance]
         
             good_matches = sorted(good, key = lambda x:x.distance)
-        
+            print(f"{len(good_matches)} good matched!")
+            if len(good_matches) == 0:
+                print("no match point found, pass")
+                continue
+            
+            # good_matches = [m for m in good_matches if m.distance < 100]
+            # print(f"{len(good_matches)} matched after distance filter!")
+            # if len(good_matches) == 0:
+            #     print("no match point found, pass")
+            #     continue
             src_pts_list = [ kp_ori[m.queryIdx].pt for m in good_matches ]
             dst_pts_list = [ kp_ref[m.trainIdx].pt for m in good_matches ]
-            print(f"{len(src_pts_list)} good matched!")
-        
-        
+            n_matched = len(good_matches)
+
             # 排除多对一匹配点
             # 根据距离阈值排除较远的点
             # affine_ori = ori_meta['transform']
             # affine_ref = ref_meta['transform']
         
+            # 换算地理坐标
             coor_ori = np.float32([window_trans * p for p in src_pts_list])
             coor_ref = np.float32([trans_ref * p for p in dst_pts_list])
         
             diff = coor_ori - coor_ref
             dis = np.sqrt(np.square(diff[:, 0]) + np.square(diff[:, 1]))
-            mask = dis < 0.01
+            mask = dis < 0.005
             matchesMask1 = mask*1
             # print(matchesMask1.sum())
             n_matched = matchesMask1.sum()
             print(f"{n_matched} matched after distance filter!")
             
-        
+            # mask = np.ones(len(src_pts_list), 'uint8')
             MIN_MATCH_COUNT = 50
             if n_matched > MIN_MATCH_COUNT:
                 # RANSAC OPENCV官方
                 src_pts = np.float32(src_pts_list).reshape(-1,1,2)
                 dst_pts = np.float32(dst_pts_list).reshape(-1,1,2)
-                M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 2.0)
+                M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 1.5)
                 # M, mask = cv.findHomography(src_pts, dst_pts, cv.LMEDS)
         
-                mask = (mask[:, 0] * matchesMask1).astype('uint8')
+                mask = (mask[:, 0]).astype('uint8')
                 # mask = matchesMask1 * mask
             matchesMask = (mask*1).ravel().tolist()
             # matchesMask = list(mask*1)
@@ -415,30 +423,24 @@ if __name__ == '__main__':
             print("{} matched left after ransac.".format(mask.sum()))
         
             gcps = np.hstack((coor_ori[mask], coor_ref[mask]))
-            
-            # RC = Residual_Cal(gcps[:, 0], gcps[:, 1], gcps[:, 2], 2)
-            # res_x = RC.get_result()
-            # RC = Residual_Cal(gcps[:, 0], gcps[:, 1], gcps[:, 3], 2)
-            # res_y = RC.get_result()
-            # res = np.sqrt(res_x ** 2 + res_y ** 2)
-            # print(f"Mean residual of x: {np.abs(res_x).mean()}")
-            # print(f"Mean residual of y: {np.abs(res_y).mean()}")
-            # print(f"Mean residual: {res.mean()}")
+
         
             # print("Writing gcp files of ArcMap format.")
-            np.savetxt(f'd:/gcp_ori_{idx}.txt', gcps,
+            out_gcp = f'd:/test/gcp_ori_{idx}.txt'
+            np.savetxt(out_gcp, gcps,
                         fmt='%10.6f', delimiter='\t')
+            gcp_files.append(out_gcp)
         
-            # draw matches
-            med = cv.drawMatches(arr_ori,kp_ori,arr_ref,kp_ref, good_matches, None,
-                                  matchesThickness=2,
-                                  matchColor = (0,255,0),
-                                  singlePointColor = None,
-                                  matchesMask = matchesMask,
-                                  flags = 2)
-        
-            cv.imwrite(f"match_block_{idx}.jpg", med)
-
+            if mask.sum() > 6:
+                # draw matches
+                med = cv.drawMatches(arr_ori,kp_ori,arr_ref,kp_ref, good_matches, None,
+                                      matchesThickness=2,
+                                      matchColor = (0,255,0),
+                                      singlePointColor = None,
+                                      matchesMask = matchesMask,
+                                      flags = 2)
+            
+                cv.imwrite(f"match_block_{idx}.jpg", med)
 
             # 写出对应目前窗口的参考窗口数据, 如果需要验证
             kwargs.update({
@@ -467,6 +469,20 @@ if __name__ == '__main__':
             #     dst.write(arr_ori)
             # break
 
+    
+    # gcp处理
+    gcps = gcps_merge(gcp_files, 'd:/tmep11', 2e-5)
+    
+    
+    
+    RC = Residual_Cal(gcps[:, 0], gcps[:, 1], gcps[:, 2], 2)
+    res_x = RC.get_result()
+    RC = Residual_Cal(gcps[:, 0], gcps[:, 1], gcps[:, 3], 2)
+    res_y = RC.get_result()
+    res = np.sqrt(res_x ** 2 + res_y ** 2)
+    print(f"Mean residual of x: {np.abs(res_x).mean()}")
+    print(f"Mean residual of y: {np.abs(res_y).mean()}")
+    print(f"Mean residual: {res.mean()}")
 
 
     # import os

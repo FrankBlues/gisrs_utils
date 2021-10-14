@@ -131,13 +131,15 @@ if __name__ == '__main__':
 
     tiles_dir = r'D:\work\data\影像样例\445825_246658_pd2020008643\PD2020008643\IMG_PHR1B_MS_002'
     tiles = glob.glob(os.path.join(tiles_dir, '*.TIF'))
-    file_dir = '/mnt/cephfs/rsi/data/hym/Sentinel/sentinel2_GF1_GF6_WFV_QW/DATA'
-    files = glob.glob(os.path.join(file_dir, '*/*.tif'))
+    file_dir = r'D:\temp11\rtree_data\images\tif'
+    files = glob.glob(os.path.join(file_dir, '*.tif'))
     print(files)
     
+    datasets = [rasterio.open(f) for f in files]
+    out_file = os.path.join("d:/temp11", 'mosaic.tif')
     
     # merge_one_by_one([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_test_bigtiff.tif')
-    merge_rio([rasterio.open(f) for f in files], os.path.join(file_dir, 'mosaic.tif'))
+    merge_rio(datasets, out_file)
     # for x in os.listdir(tiles_dir):
     #     print(x)
     

@@ -7,6 +7,7 @@ Created on Tue Jul 10 16:04:50 2018
 
 import math
 import numpy as np
+import rasterio
 
 import time
 
@@ -129,5 +130,30 @@ def dn2date(dn):
     return str(yr) + m + d
 
 
+class RasterCreate(object):
+
+    def __init__(self, cols=10, rows=10, count=1, dtype='uint8'):
+        self.cols = cols
+        self.rows = rows
+        self.count = count
+        self.dtype = dtype
+
+    def range_raster(self, out_raster):
+        data = np.arange(self.cols*self.rows).reshape(self.rows, self.cols).astype(self.dtype)
+        kargs = {
+            "height": self.rows,
+            "width": self.cols,
+            "count": self.count,
+            "driver": "GTiff",
+            "dtype": self.dtype,
+            }
+        with rasterio.open(out_raster, 'w', **kargs) as dst:
+            for i in range(self.count):
+                dst.write(data, i+1)
+
+
 if __name__ == '__main__':
     print(structElement_circle(2))
+    
+    rc = RasterCreate()
+    rc.range_raster("d:/temp11/range100.tif")

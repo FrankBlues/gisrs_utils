@@ -151,19 +151,19 @@ class Google_Tiles_Downloader(object):
 
 
 if __name__ == '__main__':
-    lon1, lat1 = 108.635350, 34.383058
-    lon2, lat2 = 109.289225, 34.015669
-    z = 16
+    lon1, lat1 = 72.476612, 55
+    lon2, lat2 = 136, 15
+    z = 10
 
     cn = False
 
     tile_dir = r'D:\g_tiles'
     url_file = 'd:/gtiles.txt'
     print(f'resolution: {get_res_mercator(z):.4f} m.')
-    # 构建
-    gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
-                                   out_dir=tile_dir, is_cn=cn)
-    # 瓦片地址写到文件
+    # # 构建
+    # gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
+    #                                out_dir=tile_dir, is_cn=cn)
+    # # 瓦片地址写到文件
     # gtd.write_urls_to_files(url_file)
 
     # 整理下载的瓦片
@@ -177,8 +177,8 @@ if __name__ == '__main__':
     #             continue
     #         downloaded = 0
     #         for f in os.listdir():
-    #             # if f == l.strip().split('/')[-1] + '.jpg':
-    #             if f == l.strip().split('/')[-1]:
+    #             if f == l.strip().split('/')[-1] + '.jpg':
+    #             # if f == l.strip().split('/')[-1]:
     #                 print(f)
     #                 match_obj = re.search(r'x=(\d+?)&y=(\d+?)&z=(\d+?)', f)
     #                 x, y, z = match_obj.groups()
@@ -193,10 +193,10 @@ if __name__ == '__main__':
     #                 o_f.write(l)
 
     # 检测瓦片
-    tiles = 'D:/g_tiles/18/'
+    tiles = 'D:/g_tiles/10/'
     for x in os.listdir(tiles):
         files = os.listdir(tiles + x)
-        if len(files) != 324:
+        if len(files) != 146:
             print(x)
         else:
             pass

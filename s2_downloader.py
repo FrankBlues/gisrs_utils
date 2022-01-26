@@ -823,10 +823,10 @@ if __name__ == '__main__':
     #     t = file.readlines()
 
     # tiles = [l[:5] for l in t]
-    tiles = ['47QLG']
+    tiles = ['50SMJ', '50SLJ']
     # time 格式 '2018-01-01'
     from time_utils import get_dates_in_range
-    times = get_dates_in_range('2019-03-02', '2019-03-24')
+    times = get_dates_in_range('2021-12-01', '2021-12-14')
     meta_downer = Downloader_metas_usgs_ee(tiles, times)
     # print(meta_downer)
     # search_result = meta_downer.get_download_url()

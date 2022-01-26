@@ -22,6 +22,7 @@ import numpy as np
 
 import xml.etree.ElementTree as ET
 
+from mosaic import merge_one_by_one
 
 def gamma(image, gamma=1.0):
     """ Apply gamma correction to the channels of the image.
@@ -149,7 +150,12 @@ def read_pci_from_zipfile(s2_safe_file):
     """
     with ZipFile(s2_safe_file) as myzip:
         for m in myzip.namelist():
-            if m.endswith('_TCI.jp2'):
+            # print(m)
+            if 'MSIL2A' in s2_safe_file:
+                ends = '_TCI_10m.jp2'
+            else:
+                ends = '_TCI.jp2'
+            if m.endswith(ends):
                 ds = rasterio.open('zip:{0}!/{1}'.format(s2_safe_file, m))
                 break
     return ds
@@ -272,23 +278,47 @@ def unzip_band_meta_image(z, s2_unzipdir):
     rmdirs(outdir)
 
 
+def ds2tif(ds, out_tif):
+    """datasets to tif"""
+    kargs = ds.meta.copy()
+    kargs.update({
+            "driver": "GTIFF",
+            "nodata": src.nodata,
+            "compress": 'lzw',
+            })
+
+    # write out dataset by dataset
+    with rasterio.open(out_tif, 'w', BIGTIFF='YES', **kargs) as dst:
+        dst.write(ds.read())
+
 if __name__ == '__main__':
 
-    s2_zipdir = r'I:\sentinel'
+    s2_zipdir = r'E:\S2\原始'
     s2_unzipdir = r'I:\sentinel\unzip'
-    pci_dir = r'I:\sentinel\0915'
+    pci_dir = r'E:\S2\PCI'
+    
+    datasets = []
 
-    s2_ziplist = glob.glob(os.path.join(s2_zipdir, 'S2*20181029*49QHD*.zip'))
+    s2_ziplist = glob.glob(os.path.join(s2_zipdir, 'S2*L2A_20210730*_T48*.zip'))
     print('total {} files. '.format(len(s2_ziplist)))
     for i, z in enumerate(s2_ziplist):
         print('extracting and processing number : {}'.format(i+1))
-        unzip_band_meta_image(z, s2_unzipdir)
+        # unzip_band_meta_image(z, s2_unzipdir)
 
         outfile = os.path.join(pci_dir,
-                               os.path.basename(z).replace('.zip', '.tif'))
-        # print(z)
+                                os.path.basename(z).replace('.zip', '.tif'))
+        print(z)
         src = read_pci_from_zipfile(z)
+        # ds2tif(src, outfile)
         # unzip_pci_image(z,pci_dir)
-        process_pci_dataset(src, outfile, resolution=1e-4)
+        # process_pci_dataset(src, outfile, resolution=1e-4)
+        # 金字塔
+        # os.system("gdaladdo -ro {}".format(outfile))
+        
+        datasets.append(src)
 
-        src.close()
+        # src.close()
+    mosaic_file = r"E:\S2\PCI\s2_0730_T48_1.tif"
+    merge_one_by_one(datasets, mosaic_file)
+    # 金字塔
+    os.system("gdaladdo -ro {}".format(mosaic_file))

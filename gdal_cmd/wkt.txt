@@ -1,0 +1,1 @@
+ogr2ogr -f CSV d:/xian.wkt D:\work\算法\数据提供\裁剪\随意画打散.shp -lco GEOMETRY=AS_WKT

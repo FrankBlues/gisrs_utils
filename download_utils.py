@@ -72,7 +72,7 @@ def download_one_by_requests_basic_simple_auth(url, out, user, passw):
     """
 
     import requests
-    r = requests.get(url, auth=(user, passw))
+    r = requests.get(url, auth=(user, passw), verify=False)
     if r.status_code == 200:
         valid_out_file(out)
         with open(out, 'wb') as fd:
@@ -295,12 +295,12 @@ if __name__ == '__main__':
     
     root_uri = 'https://scihub.copernicus.eu/dhus/odata/v1/'
     
-    tile = '50SLH'
+    tile = '50TMK'
     # 50TLK 50TMK
     # 50SLJ 50SMJ
     # 50SLH 50SMH
     
-    tile = '48SXC'
+    tile = '50TLK'
     import requests
     con = (f"Products?$format=json&"
            "$filter=year(IngestionDate) eq 2021 and "
@@ -310,15 +310,16 @@ if __name__ == '__main__':
            "substringof('L2A',Name)&"
            "$orderby=IngestionDate desc")
     con = ("Products?$format=json&"
-           "$filter=IngestionDate gt datetime'2021-07-20T00:00:00.000' and "
-           "IngestionDate lt datetime'2021-08-10T00:00:00.000' and "
+           "$filter=IngestionDate gt datetime'2022-02-01T00:00:00.000' and "
+           "IngestionDate lt datetime'2022-02-11T00:00:00.000' and "
            "startswith(Name,'S2') and "
            "substringof('{}',Name) and "
            "substringof('L2A',Name)&"
            "$orderby=IngestionDate desc").format(tile)
     print(f"Query url: {root_uri + con}")
     r = requests.get(root_uri + con,
-                     auth=('menglimeng', '302112aa'))
+                     auth=('mellem', '302112aa'),
+                     verify=False)
     if r.status_code == 200:
         content = r.json()
         results = content['d']['results']
@@ -330,13 +331,13 @@ if __name__ == '__main__':
             product_url = root_uri + f"Products('{product_id}')/$value"
             preview_url = root_uri + f"Products('{product_id}')/Products('Quicklook')/$value"
             print(product_url + '_' + str(FLAG))
-            r1 = requests.get(preview_url, auth=('menglimeng', '302112aa'))
+            r1 = requests.get(preview_url, auth=('menglimeng', '302112aa'), verify=False)
             download_one_by_requests_basic_simple_auth(preview_url, f'e:/S2/{name}_{FLAG}.jpg', 'mellem', '302112aa')
             FLAG += 1
     
             wget_cmd = f"wget --no-check-certificate --content-disposition --continue --user=menglimeng --password=302112aa \"{product_url}\""
             md5 = root_uri + f"Products('{product_id}')/Checksum/Value/$value"
-            m = requests.get(md5, auth=('mellem', '302112aa'))
+            m = requests.get(md5, auth=('mellem', '302112aa'), verify=False)
             if m.status_code == 200:
                 md5_str = m.content.decode()
             

@@ -29,6 +29,19 @@ if __name__ == '__main__':
     from mosaic import merge_rio
     from rasterio.io import MemoryFile
     
+    # dic = {}
+    # dic['GF1'] = [2e-5, 2e-5, 8e-5, 8e-5]
+    # dic['GF2'] = [8e-6, 8e-6, 2e-5, 2e-5]
+    # dic['GF6'] = [2e-5, 2e-5, 8e-5, 8e-5]
+    # dic['GF7'] = [8e-6, 8e-6, 2e-5, 2e-5]
+    # with open('d:/gsd_config.json', 'w') as ojf:
+    #     json.dump(dic, ojf, indent="  ")
+  
+    with open('d:/gsd_config.json') as ijf:
+        dic1 = json.load(ijf)
+    
+    
+    
     # json_f = r'D:\RadiometricCorrectionParameter.json'
     # with open(json_f) as fh:
     #     dics = json.load(fh)

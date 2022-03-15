@@ -1,0 +1,46 @@
+https://github.com/DigitalGlobe/gdal_ortho/blob/master/gdal_ortho/gdal_ortho.py
+
+// Use dem
+if dem_chip is None:
+                    dem_chip = dem.local_dem_chip(base_name,
+                                                  temp_dir,
+                                                  band_geom,
+                                                  rpc_dem,
+                                                  apply_geoid,
+                                                  gdal_cachemax,
+                                                  warp_memsize,
+                                                  warp_threads,
+                                                  DEM_CHIP_MARGIN_DEG)
+args = ["gdalwarp"]
+                args += ["--config", "GDAL_CACHEMAX", str(gdal_cachemax)]
+                args += ["-wm", str(warp_memsize)]
+                args += ["-t_srs", str(target_srs)]
+                args += ["-rpc"]
+                args += ["-te", str(min_extent_x), str(min_extent_y), str(max_extent_x), str(max_extent_y)]
+                args += ["-tr", str(band_pixel_size), str(band_pixel_size)]
+                args += ["-r", str(resampling_method)]
+                args += ["-et", str(error_threshold)]
+                args += ["-multi"]
+                args += ["-wo", "NUM_THREADS=%s" % warp_threads]
+                args += ["-to", "RPC_DEM=%s" % dem_chip]
+                args += ["-to", "RPC_DEMINTERPOLATION=bilinear"]
+                args += ["-co", "TILED=YES"]
+                args += [tif_filename]
+                args += [output_file]
+
+
+args = ["gdalwarp"]
+                args += ["--config", "GDAL_CACHEMAX", str(gdal_cachemax)]
+                args += ["-wm", str(warp_memsize)]
+                args += ["-t_srs", str(target_srs)]
+                args += ["-rpc"]
+                args += ["-te", str(min_extent_x), str(min_extent_y), str(max_extent_x), str(max_extent_y)]
+                args += ["-tr", str(band_pixel_size), str(band_pixel_size)]
+                args += ["-r", str(resampling_method)]
+                args += ["-et", str(error_threshold)]
+                args += ["-multi"]
+                args += ["-wo", "NUM_THREADS=%s" % warp_threads]
+                args += ["-to", "RPC_HEIGHT=%s" % avg_hae]
+                args += ["-co", "TILED=YES"]
+                args += [tif_filename]
+                args += [output_file]

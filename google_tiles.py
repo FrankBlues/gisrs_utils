@@ -151,9 +151,9 @@ class Google_Tiles_Downloader(object):
 
 
 if __name__ == '__main__':
-    lon1, lat1 = 115.8758, 40.3367
-    lon2, lat2 = 116.7096, 39.6181
-    z = 16
+    lon1, lat1 = 115.751245, 39.1
+    lon2, lat2 = 115.858674, 39.019337
+    z = 18
 
     cn = False
 
@@ -162,16 +162,16 @@ if __name__ == '__main__':
     print(f'resolution: {get_res_mercator(z):.4f} m.')
     # 构建
     # gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
-    #                                 out_dir=tile_dir, is_cn=cn)
+    #                               out_dir=tile_dir, is_cn=cn)
     # 瓦片地址写到文件
     # gtd.write_urls_to_files(url_file)
 
     # 整理下载的瓦片
     import re
     import shutil
-    new_url_file = 'd:/gtiles4.txt'
+    new_url_file = 'd:/gtiles2.txt'
     os.chdir(tile_dir)
-    with open(r'd:/gtiles3.txt') as in_f:
+    with open(r'd:/gtiles1.txt') as in_f:
         for l in in_f.readlines():
             if l == '\n':
                 continue

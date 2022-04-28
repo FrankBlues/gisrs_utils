@@ -299,7 +299,7 @@ if __name__ == '__main__':
     
     datasets = []
 
-    s2_ziplist = glob.glob(os.path.join(s2_zipdir, 'S2*L2A_20220308*_T50*.zip'))
+    s2_ziplist = glob.glob(os.path.join(s2_zipdir, 'S2*L2A_20220407*_T50*.zip'))
     print('total {} files. '.format(len(s2_ziplist)))
     for i, z in enumerate(s2_ziplist):
         print('extracting and processing number : {}'.format(i+1))
@@ -318,7 +318,7 @@ if __name__ == '__main__':
         datasets.append(src)
 
         # src.close()
-    mosaic_file = r"E:\S2\s2_20220308.tif"
+    mosaic_file = r"E:\S2\s2_20220407.tif"
     merge_one_by_one(datasets, mosaic_file)
     # 金字塔
     os.system("gdaladdo -ro {}".format(mosaic_file))

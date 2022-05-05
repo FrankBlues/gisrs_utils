@@ -1,0 +1,3 @@
+gsutil ls gs://gcp-public-data-sentinel-2/tiles/50/S/MJ/*202010*
+gsutil ls gs://gcp-public-data-sentinel-2/tiles/50/S/MJ/*2020121*.SAFE/GRANULE/*/IMG_DATA/*TCI.jp2
+gsutil cp -r gs://gcp-public-data-landsat/LC08/01/010/020/LC08_L1TP_010020_20180227_20180308_01_T1/ .

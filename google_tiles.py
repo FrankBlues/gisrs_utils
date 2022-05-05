@@ -151,19 +151,25 @@ class Google_Tiles_Downloader(object):
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     lon1, lat1 = 113.065, 29.29
     lon2, lat2 = 113.543, 29.065
     z = 17
+=======
+    lon1, lat1 = 115.751245, 39.1
+    lon2, lat2 = 115.858674, 39.019337
+    z = 18
+>>>>>>> 05bacc6d36234e87b0fb279e83575d6df251fa98
 
     cn = False
 
     tile_dir = r'D:\tiles'
     url_file = 'd:/gtiles.txt'
     print(f'resolution: {get_res_mercator(z):.4f} m.')
-    # # 构建
+    # 构建
     # gtd = Google_Tiles_Downloader(lon1, lat1, lon2, lat2, zoom=z,
-    #                                out_dir=tile_dir, is_cn=cn)
-    # # 瓦片地址写到文件
+    #                               out_dir=tile_dir, is_cn=cn)
+    # 瓦片地址写到文件
     # gtd.write_urls_to_files(url_file)
 
     # 整理下载的瓦片

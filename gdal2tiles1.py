@@ -1769,8 +1769,18 @@ class GDAL2Tiles(object):
 
         # Generate tilemapresource.xml.
         if not self.options.resume or not os.path.exists(os.path.join(self.output_folder, 'tilemapresource.xml')):
-            with open(os.path.join(self.output_folder, 'tilemapresource.xml'), 'wb') as f:
-                f.write(self.generate_tilemapresource().encode('utf-8'))
+            attempts = 0
+            success = False
+            while attempts < 3 and not success:
+                try :
+                    with open(os.path.join(self.output_folder, 'tilemapresource.xml'), 'wb') as f:
+                        f.write(self.generate_tilemapresource().encode('utf-8'))
+                    success = True
+                except OSError :
+                    print("Writing tilemapresource.xml fail, try again!")
+                    attempts += 1
+                    if attempts == 3:
+                        break
 
         if self.kml:
             # TODO: Maybe problem for not automatically generated tminz

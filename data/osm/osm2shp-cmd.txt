@@ -1,0 +1,7 @@
+osm数据转换
+
+ogr2ogr D:\temp11\osm_points.shp D:\temp11\map.osm points -lco ENCODING=UTF-8
+ogr2ogr D:\temp11\osm_lines.shp D:\temp11\map.osm lines -lco ENCODING=UTF-8
+ogr2ogr D:\temp11\osm_multilinestrings.shp D:\temp11\map.osm multilinestrings -lco ENCODING=UTF-8
+ogr2ogr D:\temp11\osm_multipolygons.shp D:\temp11\map.osm multipolygons -lco ENCODING=UTF-8
+ogr2ogr D:\temp11\osm_other_relations.shp D:\temp11\map.osm other_relations -lco ENCODING=UTF-8

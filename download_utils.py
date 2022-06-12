@@ -295,12 +295,12 @@ if __name__ == '__main__':
     
     root_uri = 'https://scihub.copernicus.eu/dhus/odata/v1/'
     
-    tile = '50SMJ'
+    tile = '50SMH'
     # 50TLK 50TMK
     # 50SLJ 50SMJ
     # 50SLH 50SMH
     
-    # tile = '50TLK'
+    # tile = '50SLH'
     import requests
     con = (f"Products?$format=json&"
            "$filter=year(IngestionDate) eq 2021 and "
@@ -310,8 +310,8 @@ if __name__ == '__main__':
            "substringof('L2A',Name)&"
            "$orderby=IngestionDate desc")
     con = ("Products?$format=json&"
-           "$filter=IngestionDate gt datetime'2022-04-01T00:00:00.000' and "
-           "IngestionDate lt datetime'2022-04-19T00:00:00.000' and "
+           "$filter=IngestionDate gt datetime'2022-06-01T00:00:00.000' and "
+           "IngestionDate lt datetime'2022-06-06T00:00:00.000' and "
            "startswith(Name,'S2') and "
            "substringof('{}',Name) and "
            "substringof('L2A',Name)&"

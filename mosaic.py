@@ -14,6 +14,8 @@ import glob
 import os
 import math
 
+import sys
+
 
 def merge_rio(src_datasets_to_mosaic, output, res=None, nodata=None,
               crs=None, compress='lzw', method='first'):
@@ -127,6 +129,125 @@ def merge_one_by_one(datasets, out, nodata=None, compress='lzw'):
             dst.write(src.read(), window=dst_window)
 
 
+def merge_within_extent(files, out, extent=None, res=None, nodata=None,
+                        compress='lzw'):
+    """ Merge raster files within an extent to one raster.
+
+    Args:
+        files (list): List of input raster.
+        out (str): The output raster.
+        extent (list): an extent (left, bottom, right, top).
+        res (tuple): out resolution (x_res, y_res).
+        nodata (float): out nodata.
+        compress (str): Compression method,(lzw,zip,None),default lzw.
+
+    """
+    print("Read metadata from first file.")
+    datasets = [rasterio.open(f) for f in files]
+    first = datasets[0]
+    first_res = first.res
+    if nodata is None:
+        nodataval = first.nodatavals[0]
+    else:
+        nodataval = nodata
+    dtype = first.dtypes[0]
+
+    # Determine output band count
+    output_count = first.count
+
+    # Extent from extent of all inputs
+    xs = []
+    ys = []
+    if extent is None:
+        for src in datasets:
+            left, bottom, right, top = src.bounds
+            xs.extend([left, right])
+            ys.extend([bottom, top])
+        dst_w, dst_s, dst_e, dst_n = min(xs), min(ys), max(xs), max(ys)
+    else:
+        dst_w, dst_s, dst_e, dst_n = extent
+
+    # out trans
+    output_transform = Affine.translation(dst_w, dst_n)
+
+    # res
+    if res is None:
+        res = first_res
+    
+    if isinstance(res, (float, str, int)):
+        res = (float(res), float(res))
+        
+    
+    print("resolusion:", res)
+    output_transform *= Affine.scale(res[0], -res[1])
+    print(output_transform.to_gdal())
+
+    # Compute output array shape. We guarantee it will cover the output
+    # bounds completely
+    output_width = int(math.ceil((dst_e - dst_w) / res[0]))
+    output_height = int(math.ceil((dst_n - dst_s) / res[1]))
+    print(f"width: {output_width}, height: {output_height}")
+
+    # Adjust bounds to fit
+    dst_e, dst_s = output_transform * (output_width, output_height)
+    print(f"dst_e: {dst_e}, dst_s: {dst_s}")
+
+    kargs = {
+            "driver": "GTIFF",
+            "count": output_count,
+            "nodata": nodataval,
+            "dtype": dtype,
+            "height": output_height,
+            "width": output_width,
+            "transform": output_transform,
+            "crs": first.crs,
+            "compress": compress,
+            }
+
+    # write out dataset by dataset
+    with rasterio.open(out, 'w+', BIGTIFF='YES', **kargs) as dst:
+        print("Total {} windows.".format(len(datasets)))
+        for i, src in enumerate(datasets):
+            src_w, src_s, src_e, src_n = src.bounds
+            
+            # not intersect
+            if src_w >= dst_e or src_s >= dst_n or src_e <= dst_w or src_n <= dst_s:
+                print("Not intersected with this extent, pass.")
+                continue
+            
+            # inter bounds
+            inter_bound = (max(src_w, dst_w), max(src_s, dst_s), min(src_e, dst_e), min(src_n, dst_n))
+            
+            # Compute the source window
+            src_window = windows.from_bounds(
+                    inter_bound[0], inter_bound[1], inter_bound[2], inter_bound[3], src.transform, precision=15)
+            
+            # Compute the destination window
+            dst_window = windows.from_bounds(
+                    inter_bound[0], inter_bound[1], inter_bound[2], inter_bound[3], output_transform, precision=15)
+            
+            # only update nodata values
+            if nodataval is not None:
+                dst_array = dst.read(window=dst_window)
+                # make sure source and dest data has the same shape.
+                src_array = src.read(out_shape=dst_array.shape, window=src_window)
+                # print(src_array.shape)
+                # print(dst_array.shape)
+                
+                mask = dst_array == nodataval
+                dst_array[mask] = src_array[mask]
+                
+                # print(src)
+                print("Writing window {}..".format(i + 1))
+                # print(dst_window)
+                dst.write(dst_array, window=dst_window)
+                
+            else:
+                # print(src)
+                print("Writing window {}..".format(i + 1))
+                # print(dst_window)
+                dst.write(src.read(window=src_window), window=dst_window)
+
 if __name__ == '__main__':
 
     tiles_dir = r'D:\work\data\影像样例\445825_246658_pd2020008643\PD2020008643\IMG_PHR1B_MS_002'
@@ -136,11 +257,21 @@ if __name__ == '__main__':
     files = glob.glob(os.path.join(file_dir, '*{0}*/GRANULE/*/IMG_DATA/*{0}*_TCI.jp2'.format(date)))
     print(files)
     
-    datasets = [rasterio.open(f) for f in files]
-    out_file = os.path.join("E:/S2", f's2_{date}.tif')
+    tiles_dir = r'D:\tmp\mosaic'
+    files = glob.glob(os.path.join(tiles_dir, '*.tiff'))
+    
+    # files = glob.glob("/mnt/cephfs/rsi/result/69/RSI202206061510577550000/defog/*/*/*/*.tiff")
+    
+    merge_within_extent(files, 'd:/aaaabcdefg.tif', extent=(110, 34, 110.5, 34.333333), res='5e-5')
+    
+    
+    # datasets = [rasterio.open(f) for f in files]
+    # out_file = os.path.join("E:/S2", f's2_{date}.tif')
+    # out_file = "/mnt/cephfs/rsi/data/Test/mlm/mosaic444.tif"
     
     # merge_one_by_one([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_test_bigtiff.tif')
-    merge_rio(datasets, out_file)
+    
+    # merge_rio(datasets, out_file)
     # for x in os.listdir(tiles_dir):
     #     print(x)
     

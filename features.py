@@ -8,6 +8,8 @@ Created on Thu Aug  2 15:26:20 2018
 """
 
 import os
+from math import ceil
+from osgeo import ogr
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, mapping
 from fiona.crs import from_epsg
@@ -149,33 +151,142 @@ def listToShp(outShpFile, geometry_list, epsg=4326, encoding='gbk',
     newdata.to_file(outShpFile, encoding=encoding, schema=schema)
 
 
-if __name__ == '__main__':
+def extent2grid(outputGridfn,xmin,xmax,ymin,ymax,gridHeight,gridWidth, SpatialReference=None):
+    """Generate grid(shapefile)
+    
+    Usage:
+    output_shp = "/mnt/out.shp"
+    ref_raster = "/mnt/ref_raster.tif"
+    ds = gdal.Open(ref_raster)
+    # SpatialReference
+    sr = ds.GetSpatialRef()
+    grid_width_pixel = grid_height_pixel = 10000
+    # extent
+    geotransform = ds.GetGeoTransform()
+    xmin, res_x, _, ymax, _, res_y = geotransform
+    
+    cols, rows = (ds.RasterXSize, ds.RasterYSize)
+    
+    buffer_x = cols * res_x * 0.05
+    buffer_y = abs(rows * res_y * 0.05)
+    
+    xmin, xmax = (xmin-buffer_x, xmin + cols * res_x * 1.05)
+    ymin, ymax = (ymax + rows * res_y * 1.05, ymax + buffer_y)
 
-    from rtree import index
-    idx = index.Index()
+    # grid width and height
+    gridHeight, gridWidth = (int(grid_width_pixel) * res_x, 
+                             abs(int(grid_height_pixel) * res_y))
+    
+    # 检查/创建输出文件所在目录
+    dirname = os.path.dirname(output_shp)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    extent2grid(output_shp, xmin, xmax, ymin, ymax, gridHeight, gridWidth, sr)
+    
+    """
+    xmin = float(xmin)
+    xmax = float(xmax)
+    ymin = float(ymin)
+    ymax = float(ymax)
+    gridWidth = float(gridWidth)
+    gridHeight = float(gridHeight)
+
+    # get rows
+    rows = ceil((ymax-ymin)/gridHeight)
+    # get columns
+    cols = ceil((xmax-xmin)/gridWidth)
+
+    # start grid cell envelope
+    ringXleftOrigin = xmin
+    ringXrightOrigin = xmin + gridWidth
+    ringYtopOrigin = ymax
+    ringYbottomOrigin = ymax-gridHeight
+
+    # create output file
+    outDriver = ogr.GetDriverByName('ESRI Shapefile')
+    if os.path.exists(outputGridfn):
+        os.remove(outputGridfn)
+    outDataSource = outDriver.CreateDataSource(outputGridfn)
+    outLayer = outDataSource.CreateLayer(outputGridfn,SpatialReference, geom_type=ogr.wkbPolygon)
+    outLayer.CreateField(ogr.FieldDefn('NewMapNo',ogr.OFTString))
+    featureDefn = outLayer.GetLayerDefn()
+
+    # create grid cells
+    countcols = 0
+    while countcols < cols:
+        countcols += 1
+
+        # reset envelope for rows
+        ringYtop = ringYtopOrigin
+        ringYbottom =ringYbottomOrigin
+        countrows = 0
+
+        while countrows < rows:
+            countrows += 1
+            ring = ogr.Geometry(ogr.wkbLinearRing)
+            ring.AddPoint(ringXleftOrigin, ringYtop)
+            ring.AddPoint(ringXrightOrigin, ringYtop)
+            ring.AddPoint(ringXrightOrigin, ringYbottom)
+            ring.AddPoint(ringXleftOrigin, ringYbottom)
+            ring.AddPoint(ringXleftOrigin, ringYtop)
+            poly = ogr.Geometry(ogr.wkbPolygon)
+            poly.AddGeometry(ring)
+
+            # add new geom to layer
+            outFeature = ogr.Feature(featureDefn)
+            outFeature.SetGeometry(poly)
+            outFeature.SetField("NewMapNo", f"grid_{countcols:04d}_{countrows:04d}")
+            outLayer.CreateFeature(outFeature)
+            outFeature.Destroy
+
+            # new envelope for next poly
+            ringYtop = ringYtop - gridHeight
+            ringYbottom = ringYbottom - gridHeight
+
+        # new envelope for next poly
+        ringXleftOrigin = ringXleftOrigin + gridWidth
+        ringXrightOrigin = ringXrightOrigin + gridWidth
+
+    # Close DataSources
+    outDataSource.Destroy()
+
+
+if __name__ == '__main__':
+    
+    xmin,xmax,ymin,ymax = (36570535, 36575818, 3797003, 3800370)
+    gridHeight,gridWidth = (2000, 2000)
+    outputGridfn = "d:/out.shp"
+    extent2grid(outputGridfn,xmin,xmax,ymin,ymax,gridHeight,gridWidth)
+    
+    
+
+    # from rtree import index
+    # idx = index.Index()
 
 
     # 读取省界数据，得到几何信息（投影需一致，经纬度）
-    gdsheng = r'D:\test\test_fishnet1.shp'
-    in_r = r'D:\work\data\影像样例\610124.tif'
-    import rasterio
-    ds = rasterio.open(in_r)
-    # a = (get_features_from_shp(gdsheng))
+    # gdsheng = r'D:\test\test_fishnet1.shp'
+    # in_r = r'D:\work\data\影像样例\610124.tif'
+    # import rasterio
+    # ds = rasterio.open(in_r)
+    # # a = (get_features_from_shp(gdsheng))
 
-    data = gpd.read_file(gdsheng)
-    for i, g in enumerate(data.geometry):
-        idx.insert(i, g.bounds)
+    # data = gpd.read_file(gdsheng)
+    # for i, g in enumerate(data.geometry):
+    #     idx.insert(i, g.bounds)
 
-    # 根据栅格数据四至范围找到相交的分幅
-    ids = list(idx.intersection(tuple(ds.bounds)))
-    from mask import extract_by_mask_rio_ds
-    for i in ids:
-        print(i)
-        extract_by_mask_rio_ds([data.geometry[i]], ds,
-                               'd:/temp/' + data.loc[i, 'name'] + '.tif',
-                               nodata=0)
+    # # 根据栅格数据四至范围找到相交的分幅
+    # ids = list(idx.intersection(tuple(ds.bounds)))
+    # from mask import extract_by_mask_rio_ds
+    # for i in ids:
+    #     print(i)
+    #     extract_by_mask_rio_ds([data.geometry[i]], ds,
+    #                            'd:/temp/' + data.loc[i, 'name'] + '.tif',
+    #                            nodata=0)
 
 
     # xml_dir = r'F:\HJ\hjxml_0823'
     # outshp = 'd:/bbbbb.shp'
     # checkHJ(gdsheng,xml_dir,outshp)
+    

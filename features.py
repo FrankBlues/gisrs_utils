@@ -252,6 +252,37 @@ def extent2grid(outputGridfn,xmin,xmax,ymin,ymax,gridHeight,gridWidth, SpatialRe
     outDataSource.Destroy()
 
 
+def create_shp_from_shapely_geometry(geometry, out_shp='out.shp'):
+    """shapely geometry转shapefile"""
+    # Now convert it to a shapefile with OGR    
+    driver = ogr.GetDriverByName('Esri Shapefile')
+    ds = driver.CreateDataSource(out_shp)
+    layer = ds.CreateLayer('', None, ogr.wkbPolygon)
+    # Add one attribute
+    layer.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
+    defn = layer.GetLayerDefn()
+    
+    if not geometry.geom_type.startswith('Multi'):
+        geometry = [geometry]
+    
+    ## If there are multiple geometries, put the "for" loop here
+    for i, poly in enumerate(geometry):
+    
+        # Create a new feature (attribute and geometry)
+        feat = ogr.Feature(defn)
+        feat.SetField('id', i)
+        
+        # Make a geometry, from Shapely object
+        geom = ogr.CreateGeometryFromWkb(poly.wkb)
+        feat.SetGeometry(geom)
+        
+        layer.CreateFeature(feat)
+        feat = geom = None  # destroy these
+        
+    # Save and close everything
+    ds = layer = feat = geom = None
+
+
 if __name__ == '__main__':
     
     xmin,xmax,ymin,ymax = (36570535, 36575818, 3797003, 3800370)

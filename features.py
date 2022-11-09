@@ -9,7 +9,7 @@ Created on Thu Aug  2 15:26:20 2018
 
 import os
 from math import ceil
-from osgeo import ogr
+from osgeo import ogr, gdal
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon, mapping, shape
 from shapely.validation import make_valid

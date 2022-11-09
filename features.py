@@ -11,8 +11,15 @@ import os
 from math import ceil
 from osgeo import ogr
 import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, mapping
+from shapely.geometry import Polygon, MultiPolygon, mapping, shape
+from shapely.validation import make_valid
+from shapely.ops import transform
 from fiona.crs import from_epsg
+
+import rasterio
+from rasterio import features
+
+import pyproj
 
 from xml.etree import ElementTree
 
@@ -282,6 +289,74 @@ def create_shp_from_shapely_geometry(geometry, out_shp='out.shp'):
     # Save and close everything
     ds = layer = feat = geom = None
 
+
+def get_geometry_masks(in_raster, have_rpc=False, do_sieve=False, sieve_size=10):
+    """从卫星原始数据获取影像实际有效范围"""
+    with rasterio.open(in_raster) as src:
+        # 如果数据没有空值，并且不是原始影像，返回四至范围
+        if src.nodata is None and not have_rpc:
+            x1, y1, x2, y2 = src.bounds
+            print("  Reference image donot have nodata value, return image extent.")
+            return Polygon([(x1, y1), (x1, y2), (x2, y2), (x2, y1), (x1, y1)])
+
+        if not have_rpc:
+            # print("Read data masks..")
+            arr = src.read_masks()
+        else:
+            # print("Read data values..")
+            arr = src.read()
+        print("  Get masks..")
+        mask = arr.any(axis=0)  # 任意波段中值不为0
+        if do_sieve:
+            print("  Sieve small parts..")
+            mask = features.sieve(mask.astype('uint8'), size=sieve_size)
+        arr = None
+
+        # get features of the same value from an array
+        print("  Get features of the mask..")
+        none_zero = features.shapes(mask.astype('uint8'), mask,
+                                    connectivity=4, 
+                                    transform=src.transform)
+    # 获取geometry
+    print("  Convert to shapely geometry and return..")
+    polygons = []
+    for p, _ in none_zero:
+        polygons.append(shape(p))
+    if len(polygons) == 0: 
+        return
+    elif len(polygons) == 1:
+        return polygons[0]
+    else:
+        return MultiPolygon(polygons)
+
+
+def cal_area_intersection(ori_img, ref_img, out_txt="/tmp/area.txt"):
+    """Get valid extent of two images, intersection and write the area to 
+    text."""
+    print("Warp origin image through rpc model..")
+    gdal.Warp('/tmp/temp.vrt', ori_img,  rpc=True)
+    print("Get mask of origin image...")
+    geo_sat = make_valid(get_geometry_masks('/tmp/temp.vrt', have_rpc=True))
+    print("Get mask of reference image...")
+    geo_ref = make_valid(get_geometry_masks(ref_img, have_rpc=False, 
+                                            do_sieve=True, sieve_size=10))
+    # 坐标转换
+    dst_crs = pyproj.CRS(rasterio.open(ref_img).crs)
+    if dst_crs.is_projected:
+        print("Transform to WGS1984...")
+        wgs84 = pyproj.CRS('EPSG:4326')
+        project = pyproj.Transformer.from_crs(dst_crs, wgs84, always_xy=True).transform
+        geo_ref = make_valid(transform(project, geo_ref))
+    print("Intersect.....")
+    if geo_sat is not None and geo_ref is not None:
+        inter_area = geo_sat.intersection(geo_ref).area
+        print("Intersect area: ", inter_area)
+        dirname = os.path.dirname(out_txt)
+        if not os.path.isdir(dirname): os.makedirs(dirname)
+        with open(out_txt, 'w') as ofh:
+            ofh.write(str(inter_area) + '\n')
+            ofh.write(os.path.normpath(ori_img) + '\n')
+            ofh.write(os.path.normpath(ref_img))
 
 if __name__ == '__main__':
     

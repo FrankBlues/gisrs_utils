@@ -297,7 +297,7 @@ if __name__ == '__main__':
     
     root_uri = 'https://scihub.copernicus.eu/dhus/odata/v1/'
     
-    tile = '50SLH'
+    tile = '50SMJ'
     # 50TLK 50TMK
     # 50SLJ 50SMJ
     # 50SLH 50SMH
@@ -309,14 +309,14 @@ if __name__ == '__main__':
            "month(IngestionDate) eq 12 and "
            "startswith(Name,'S2') and "
            "substringof('50SMH',Name) and "
-           "substringof('L2A',Name)&"
+           "substringof('L1A',Name)&"
            "$orderby=IngestionDate desc")
     con = ("Products?$format=json&"
-           "$filter=IngestionDate gt datetime'2022-10-19T00:00:00.000' and "
-           "IngestionDate lt datetime'2022-10-20T00:00:00.000' and "
+           "$filter=IngestionDate gt datetime'2022-11-11T00:00:00.000' and "
+           "IngestionDate lt datetime'2022-11-14T00:00:00.000' and "
            "startswith(Name,'S2') and "
            "substringof('{}',Name) and "
-           "substringof('L2A',Name)&"
+           "substringof('L1C',Name)&"
            "$orderby=IngestionDate desc").format(tile)
     print(f"Query url: {root_uri + con}")
     r = requests.get(root_uri + con,

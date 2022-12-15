@@ -13,6 +13,8 @@ from rasterio import features
 from fiona.crs import from_epsg
 import fiona
 
+import warnings
+warnings.filterwarnings('ignore')
 
 def fill_empty_area(ds):
     """假设原影像数据空值为0，但内部很少空值，对3个波段数据取交集作为掩膜，然后填充内部的

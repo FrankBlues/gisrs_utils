@@ -23,6 +23,8 @@ except ImportError:
     from http.cookiejar import MozillaCookieJar
     from io import StringIO
 
+import warnings
+warnings.filterwarnings('ignore')
 
 def valid_out_file(out):
     """验证下载输出文件: 1.如果是文件目录，报错退出; 2.如果文件目录不存在则创建.
@@ -295,26 +297,26 @@ if __name__ == '__main__':
     
     root_uri = 'https://scihub.copernicus.eu/dhus/odata/v1/'
     
-    tile = '50SMH'
+    tile = '50SMJ'
     # 50TLK 50TMK
     # 50SLJ 50SMJ
     # 50SLH 50SMH
     
-    # tile = '50SLH'
+    # tile = '50SLJ'
     import requests
     con = (f"Products?$format=json&"
            "$filter=year(IngestionDate) eq 2021 and "
            "month(IngestionDate) eq 12 and "
            "startswith(Name,'S2') and "
            "substringof('50SMH',Name) and "
-           "substringof('L2A',Name)&"
+           "substringof('L1A',Name)&"
            "$orderby=IngestionDate desc")
     con = ("Products?$format=json&"
-           "$filter=IngestionDate gt datetime'2022-06-01T00:00:00.000' and "
-           "IngestionDate lt datetime'2022-06-06T00:00:00.000' and "
+           "$filter=IngestionDate gt datetime'2022-11-11T00:00:00.000' and "
+           "IngestionDate lt datetime'2022-11-14T00:00:00.000' and "
            "startswith(Name,'S2') and "
            "substringof('{}',Name) and "
-           "substringof('L2A',Name)&"
+           "substringof('L1C',Name)&"
            "$orderby=IngestionDate desc").format(tile)
     print(f"Query url: {root_uri + con}")
     r = requests.get(root_uri + con,

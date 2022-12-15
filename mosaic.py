@@ -155,6 +155,7 @@ def merge_within_extent(files, out, extent=None, res=None, nodata=None,
     # Determine output band count
     output_count = first.count
 
+    print("Calculate output geotransform.")
     # Extent from extent of all inputs
     xs = []
     ys = []
@@ -173,24 +174,21 @@ def merge_within_extent(files, out, extent=None, res=None, nodata=None,
     # res
     if res is None:
         res = first_res
-    
+
     if isinstance(res, (float, str, int)):
         res = (float(res), float(res))
-        
-    
-    print("resolusion:", res)
+
     output_transform *= Affine.scale(res[0], -res[1])
-    print(output_transform.to_gdal())
+    print("  Output transform: ", output_transform.to_gdal())
 
     # Compute output array shape. We guarantee it will cover the output
     # bounds completely
     output_width = int(math.ceil((dst_e - dst_w) / res[0]))
     output_height = int(math.ceil((dst_n - dst_s) / res[1]))
-    print(f"width: {output_width}, height: {output_height}")
+    print(f"Output width: {output_width}, height: {output_height}")
 
     # Adjust bounds to fit
     dst_e, dst_s = output_transform * (output_width, output_height)
-    print(f"dst_e: {dst_e}, dst_s: {dst_s}")
 
     kargs = {
             "driver": "GTIFF",
@@ -204,48 +202,47 @@ def merge_within_extent(files, out, extent=None, res=None, nodata=None,
             "compress": compress,
             }
 
+    print("Mosaic files...")
     # write out dataset by dataset
     with rasterio.open(out, 'w+', BIGTIFF='YES', **kargs) as dst:
-        print("Total {} windows.".format(len(datasets)))
+        print("Total {} files.".format(len(datasets)))
         for i, src in enumerate(datasets):
+            current_file = files[i]
+            print(f"  Process file {current_file}..")
             src_w, src_s, src_e, src_n = src.bounds
-            
+
             # not intersect
             if src_w >= dst_e or src_s >= dst_n or src_e <= dst_w or src_n <= dst_s:
-                print("Not intersected with this extent, pass.")
+                print("    File not intersected with target extent, next.")
                 continue
-            
+
+            print("    Calculate window for source and dest file.")
             # inter bounds
             inter_bound = (max(src_w, dst_w), max(src_s, dst_s), min(src_e, dst_e), min(src_n, dst_n))
-            
+
             # Compute the source window
             src_window = windows.from_bounds(
                     inter_bound[0], inter_bound[1], inter_bound[2], inter_bound[3], src.transform, precision=15)
-            
+
             # Compute the destination window
             dst_window = windows.from_bounds(
                     inter_bound[0], inter_bound[1], inter_bound[2], inter_bound[3], output_transform, precision=15)
-            
+
             # only update nodata values
             if nodataval is not None:
                 dst_array = dst.read(window=dst_window)
                 # make sure source and dest data has the same shape.
                 src_array = src.read(out_shape=dst_array.shape, window=src_window)
-                # print(src_array.shape)
-                # print(dst_array.shape)
-                
+
                 mask = dst_array == nodataval
                 dst_array[mask] = src_array[mask]
-                
-                # print(src)
-                print("Writing window {}..".format(i + 1))
-                # print(dst_window)
+                mask = src_array = None
+
+                print("    Writing out...")
                 dst.write(dst_array, window=dst_window)
-                
+
             else:
-                # print(src)
-                print("Writing window {}..".format(i + 1))
-                # print(dst_window)
+                print("    Writing out...")
                 dst.write(src.read(window=src_window), window=dst_window)
 
 if __name__ == '__main__':
@@ -256,25 +253,25 @@ if __name__ == '__main__':
     date = '20211203'
     files = glob.glob(os.path.join(file_dir, '*{0}*/GRANULE/*/IMG_DATA/*{0}*_TCI.jp2'.format(date)))
     print(files)
-    
+
     tiles_dir = r'D:\tmp\mosaic'
     files = glob.glob(os.path.join(tiles_dir, '*.tiff'))
-    
+
     # files = glob.glob("/mnt/cephfs/rsi/result/69/RSI202206061510577550000/defog/*/*/*/*.tiff")
-    
+
     merge_within_extent(files, 'd:/aaaabcdefg.tif', extent=(110, 34, 110.5, 34.333333), res='5e-5')
-    
-    
+
+
     # datasets = [rasterio.open(f) for f in files]
     # out_file = os.path.join("E:/S2", f's2_{date}.tif')
     # out_file = "/mnt/cephfs/rsi/data/Test/mlm/mosaic444.tif"
-    
+
     # merge_one_by_one([rasterio.open(f) for f in tiles], 'G:/temp/SN3_image_shanghai_test_bigtiff.tif')
-    
+
     # merge_rio(datasets, out_file)
     # for x in os.listdir(tiles_dir):
     #     print(x)
-    
+
     #     tiles = glob.glob(os.path.join(tiles_dir, x, '*.png'))
     #     merge_rio([rasterio.open(f) for f in tiles], os.path.join(tiles_dir, x + '.tif'))
 
@@ -285,17 +282,17 @@ if __name__ == '__main__':
 #     rasterDir = r'D:\work\data\土地利用30'
 #     output = r'D:\work\data\land_use_global_30.tif'
 #     output_dir = r'D:\work\data'
-# 
+#
 #     rfiles = glob.glob(os.path.join(rasterDir, '*.tif'))
 #     rfiles = rfiles[-16:]
 #     import re
 #     # 找到EW和NS间的数字,即经度.
 #     pattern = re.compile(r'(?<=[EW])\d+\.?\d*(?=[NS])')
-# 
+#
 #     batch = []
 #     flag = -1
 #     name_suffix = ''
-# 
+#
 #     for r in rfiles:
 #         lons = re.findall(pattern, r)
 #         if len(lons) != 1:
@@ -308,7 +305,7 @@ if __name__ == '__main__':
 #                 src_files_to_mosaic = [rasterio.open(f) for f in batch]
 #                 merge_rio(src_files_to_mosaic, os.path.join(output_dir, 'land_use_30m_' + name_suffix + '.tif'), nodata=0)
 #                 # break
-# 
+#
 #             flag = int(lon)
 #             batch = []
 #             batch.append(r)
@@ -318,14 +315,14 @@ if __name__ == '__main__':
 #             elif 'W' + str(lon) in r:
 #                 name_suffix = 'W' + str(lon)
 #             # print(name_suffix)
-#             
-# 
+#
+#
 #         else:
 #             batch.append(r)
 #     src_files_to_mosaic = [rasterio.open(f) for f in batch]
 #     merge_rio(src_files_to_mosaic, os.path.join(output_dir, 'land_use_30m_' + name_suffix + '.tif'), nodata=0)
-# 
-# 
+#
+#
 # =============================================================================
 
 
